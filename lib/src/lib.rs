@@ -1,17 +1,11 @@
+use self::parser::parse_conversion;
+
 mod graph;
+mod parser;
 mod units;
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn convert(input: &str) -> Option<f32> {
+    let conversion = parse_conversion(&input);
+    println!("{:?}", conversion.unwrap());
+    None
 }

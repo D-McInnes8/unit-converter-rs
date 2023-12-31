@@ -10,3 +10,7 @@ name = "unitconverter"
 path = "src/main.rs"
 
 [dependencies]
+
+[dependencies.unitconverter]
+version = "0.1.0"
+path = "../lib"

@@ -1,5 +1,7 @@
 use std::io;
 
+use unitconverter::convert;
+
 fn main() {
     loop {
         let mut input = String::new();
@@ -12,7 +14,9 @@ fn main() {
                     if command == "exit" {
                         return;
                     }
-                    println!("{}", command);
+
+                    execute_conversion(&input);
+                    //println!("{}", command);
                 }
             }
             Err(error) => {
@@ -20,6 +24,13 @@ fn main() {
                 return;
             }
         }
+    }
+}
+
+fn execute_conversion(input: &str) {
+    match convert(input) {
+        Some(converted) => println!("{}", converted),
+        None => {}
     }
 }
 
