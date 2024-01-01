@@ -11,17 +11,12 @@ use nom::{
     IResult, Parser,
 };
 
+use crate::UnitConversion;
+
 #[derive(Debug, Clone, PartialEq)]
-enum Unit {
+pub enum Unit {
     Celsius,
     Farenheight,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct UnitConversion {
-    value: f32,
-    from: Unit,
-    to: Unit,
 }
 
 pub fn parse_conversion(input: &str) -> Result<UnitConversion, &str> {

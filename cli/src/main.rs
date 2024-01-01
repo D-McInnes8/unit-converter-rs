@@ -1,8 +1,9 @@
 use std::io;
 
-use unitconverter::convert;
+use unitconvert::UnitConverter;
 
 fn main() {
+    let mut converter = UnitConverter::new();
     loop {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
@@ -15,8 +16,14 @@ fn main() {
                         return;
                     }
 
-                    execute_conversion(&input);
-                    //println!("{}", command);
+                    match converter.convert_from_expression(&command) {
+                        Some(new_value) => {
+                            println!("{}", new_value);
+                        }
+                        None => {
+                            eprintln!("Invalid conversion");
+                        }
+                    }
                 }
             }
             Err(error) => {
@@ -24,13 +31,6 @@ fn main() {
                 return;
             }
         }
-    }
-}
-
-fn execute_conversion(input: &str) {
-    match convert(input) {
-        Some(converted) => println!("{}", converted),
-        None => {}
     }
 }
 
