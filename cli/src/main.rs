@@ -17,11 +17,11 @@ fn main() {
                     }
 
                     match converter.convert_from_expression(&command) {
-                        Some(new_value) => {
+                        Ok(new_value) => {
                             println!("{}", new_value);
                         }
-                        None => {
-                            eprintln!("Invalid conversion");
+                        Err(err) => {
+                            eprintln!("{}", err);
                         }
                     }
                 }

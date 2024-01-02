@@ -11,15 +11,12 @@ use nom::{
     IResult, Parser,
 };
 
-use crate::UnitConversion;
+use crate::{
+    units::{TemperatureUnit, Unit},
+    ConversionError, UnitConversion,
+};
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum Unit {
-    Celsius,
-    Farenheight,
-}
-
-pub fn parse_conversion(input: &str) -> Result<UnitConversion, &str> {
+pub fn parse_conversion(input: &str) -> Result<UnitConversion, ConversionError> {
     let result = context(
         "conversion",
         tuple((parse_number, parse_unit, parse_operator, parse_unit)),
@@ -33,18 +30,22 @@ pub fn parse_conversion(input: &str) -> Result<UnitConversion, &str> {
                 to: convert_to,
             })
         }
-        Err(err) => return Err("Error parsing conversion"),
+        Err(err) => {
+            eprintln!("Parse Error: {}", err);
+            return Err(ConversionError::new());
+        }
     }
 }
 
 fn parse_number(input: &str) -> IResult<&str, f32> {
-    float(input)
+    context("value", float)(input)
 }
 
 fn parse_unit(input: &str) -> IResult<&str, Unit> {
     alt((
-        value(Unit::Celsius, tag("C")),
-        value(Unit::Farenheight, tag("F")),
+        value(Unit::Temperature(TemperatureUnit::Celsius), tag("C")),
+        value(Unit::Temperature(TemperatureUnit::Fahrenheit), tag("F")),
+        value(Unit::Temperature(TemperatureUnit::Kelvin), tag("K")),
     ))(input)
 }
 
@@ -61,8 +62,8 @@ mod tests {
         let mut input = "20C -> F";
         let expected = UnitConversion {
             value: 20.0,
-            from: Unit::Celsius,
-            to: Unit::Farenheight,
+            from: Unit::Temperature(TemperatureUnit::Celsius),
+            to: Unit::Temperature(TemperatureUnit::Fahrenheit),
         };
         let actual = parse_conversion(&mut input).unwrap();
         assert_eq!(expected, actual);

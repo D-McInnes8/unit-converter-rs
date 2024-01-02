@@ -1,4 +1,10 @@
-use self::parser::{parse_conversion, Unit};
+use core::fmt;
+use std::error::Error;
+
+use nom::Err;
+
+use self::parser::parse_conversion;
+use self::units::Unit;
 
 mod graph;
 mod parser;
@@ -9,7 +15,7 @@ pub trait ConversionStore {
     fn get_default_conversions(&self) -> Result<Vec<UnitConversion>, ()>;
 }
 
-pub struct UnitConverter {}
+pub struct UnitConverter;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitConversion {
@@ -23,7 +29,7 @@ impl UnitConverter {
         UnitConverter {}
     }
 
-    pub fn convert_from_expression(&mut self, input: &str) -> Option<f32> {
+    pub fn convert_from_expression(&mut self, input: &str) -> Result<f32, ConversionError> {
         match parse_conversion(&input) {
             Ok(conversion) => {
                 println!("{:?}", conversion);
@@ -33,19 +39,46 @@ impl UnitConverter {
                     conversion.value,
                 );
             }
-            Err(_) => {
-                eprintln!("Unable to parse expression");
-                return None;
+            Err(err) => {
+                return Err(ConversionError::new());
             }
         }
     }
 
-    pub fn convert_from_definition(&mut self, from: Unit, to: Unit, value: f32) -> Option<f32> {
-        None
+    pub fn convert_from_definition(
+        &mut self,
+        from: Unit,
+        to: Unit,
+        value: f32,
+    ) -> Result<f32, ConversionError> {
+        Err(ConversionError::new())
     }
 
     pub fn add_default_conversions(&mut self, store: &impl ConversionStore) -> Result<(), ()> {
         let default_conversions = store.get_default_conversions()?;
         Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct ConversionError {
+    source: Option<Box<dyn Error>>,
+}
+
+impl ConversionError {
+    fn new() -> ConversionError {
+        ConversionError { source: None }
+    }
+}
+
+impl fmt::Display for ConversionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error executing conversion")
+    }
+}
+
+impl Error for ConversionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.source.as_deref()
     }
 }
