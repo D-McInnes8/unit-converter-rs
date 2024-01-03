@@ -1,8 +1,7 @@
 use core::fmt;
 use std::error::Error;
 
-use nom::Err;
-
+use self::graph::Graph;
 use self::parser::parse_conversion;
 use self::units::Unit;
 
@@ -15,7 +14,9 @@ pub trait ConversionStore {
     fn get_default_conversions(&self) -> Result<Vec<UnitConversion>, ()>;
 }
 
-pub struct UnitConverter;
+pub struct UnitConverter {
+    graph: Graph,
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitConversion {
@@ -26,7 +27,9 @@ pub struct UnitConversion {
 
 impl UnitConverter {
     pub fn new() -> UnitConverter {
-        UnitConverter {}
+        UnitConverter {
+            graph: Graph::new(),
+        }
     }
 
     pub fn convert_from_expression(&mut self, input: &str) -> Result<f32, ConversionError> {

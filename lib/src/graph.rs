@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
@@ -74,6 +76,72 @@ impl Graph {
 
         return None;
     }
+
+    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(i32, i32)> {
+        let mut results = Vec::<(i32, i32)>::new();
+        let mut distance = vec![usize::MAX; self.nodes.len()];
+        let mut priority = BTreeMap::new();
+        //let mut heap = BinaryHeap::new();
+        //let mut prev = vec![None; self.nodes.len()];
+        let mut prev = vec![source];
+
+        distance[source] = 0;
+        priority.insert(source, 0);
+
+        while let Some((node_index, weight)) = priority.pop_first() {
+            if node_index == target {
+                println!("Is target node, breaking loop");
+                break;
+            }
+
+            if weight > distance[node_index] {
+                println!("Weight > Distance, continueing to next node");
+                continue;
+            }
+
+            println!("Checking for node {}", node_index);
+            for edge in &self.nodes[node_index].edges {
+                let edge_data = &self.edges[*edge];
+                //let alt = weight + edge_data.weight as usize;
+                let alt = weight + 1;
+
+                if alt < distance[edge_data.target] {
+                    println!(
+                        "Alt value {} is less than {} for adjcent node {}",
+                        alt, distance[edge_data.target], edge_data.target
+                    );
+                    priority.insert(edge_data.target, alt);
+                    distance[edge_data.target] = alt;
+
+                    let node_data = &self.nodes[edge_data.target];
+                    results.push((node_data.value, edge_data.weight));
+
+                    if !prev.contains(&node_index) {
+                        prev.push(node_index);
+                    }
+                }
+            }
+        }
+        prev.push(target);
+
+        println!("Distance");
+        for (index, weight) in distance.iter().enumerate() {
+            println!("Index: {}, Weight: {}", index, weight);
+        }
+
+        println!("Path");
+        let mut results2 = Vec::new();
+        for i in 0..prev.len() - 1 {
+            let node_data = &self.nodes[prev[i + 1]];
+            let edge_weight = self.get_edge_weight(prev[i], prev[i + 1]);
+            results2.push((node_data.value, edge_weight.unwrap()));
+        }
+
+        println!();
+        println!();
+
+        return results2;
+    }
 }
 
 #[cfg(test)]
@@ -140,5 +208,25 @@ mod tests {
         assert_eq!(e0, Err(GraphOperationError::NodeDoesNotExist));
         assert_eq!(e1, Err(GraphOperationError::NodeDoesNotExist));
         assert_eq!(graph.get_edge_weight(n0, n2), None);
+    }
+
+    #[test]
+    fn shortest_path_dijkstra() {
+        let mut graph = Graph::new();
+
+        let n0 = graph.add_node(1);
+        let n1 = graph.add_node(2);
+        let n2 = graph.add_node(3);
+        let n3 = graph.add_node(4);
+        let n4 = graph.add_node(5);
+
+        _ = graph.add_edge(n0, n1, 25);
+        _ = graph.add_edge(n1, n3, 30);
+        _ = graph.add_edge(n1, n2, 25);
+        _ = graph.add_edge(n2, n3, 30);
+        _ = graph.add_edge(n3, n4, 40);
+
+        let actual = graph.shortest_path(n0, n3);
+        assert_eq!(actual, vec![(2, 25), (4, 30)]);
     }
 }

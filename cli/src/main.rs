@@ -15,6 +15,9 @@ fn main() {
                     if command == "exit" {
                         return;
                     }
+                    if command == "test" {
+                        //graph_test();
+                    }
 
                     match converter.convert_from_expression(&command) {
                         Ok(new_value) => {
