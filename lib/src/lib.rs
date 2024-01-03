@@ -15,7 +15,7 @@ pub trait ConversionStore {
 }
 
 pub struct UnitConverter {
-    graph: Graph,
+    graph: Graph<Unit, f32>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -3,19 +3,23 @@ use std::collections::BTreeMap;
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
-pub struct NodeData {
-    value: i32,
+pub struct NodeData<T> {
+    value: T,
     edges: Vec<EdgeIndex>,
 }
 
-pub struct EdgeData {
+pub struct EdgeData<T> {
     target: NodeIndex,
-    weight: i32,
+    weight: T,
 }
 
-pub struct Graph {
-    nodes: Vec<NodeData>,
-    edges: Vec<EdgeData>,
+pub struct Graph<N, E>
+where
+    N: Copy,
+    E: Copy,
+{
+    nodes: Vec<NodeData<N>>,
+    edges: Vec<EdgeData<E>>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -23,15 +27,19 @@ pub enum GraphOperationError {
     NodeDoesNotExist,
 }
 
-impl Graph {
-    pub fn new() -> Graph {
+impl<N, E> Graph<N, E>
+where
+    N: Copy,
+    E: Copy,
+{
+    pub fn new() -> Graph<N, E> {
         Graph {
             nodes: Vec::new(),
             edges: Vec::new(),
         }
     }
 
-    pub fn add_node(&mut self, value: i32) -> NodeIndex {
+    pub fn add_node(&mut self, value: N) -> NodeIndex {
         let index = self.nodes.len();
         self.nodes.push(NodeData {
             value: value,
@@ -44,7 +52,7 @@ impl Graph {
         &mut self,
         source: NodeIndex,
         target: NodeIndex,
-        weight: i32,
+        weight: E,
     ) -> Result<(), GraphOperationError> {
         if source >= self.nodes.len() || target >= self.nodes.len() {
             return Err(GraphOperationError::NodeDoesNotExist);
@@ -62,7 +70,7 @@ impl Graph {
         return Ok(());
     }
 
-    pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<i32> {
+    pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<E> {
         if source >= self.nodes.len() || target >= self.nodes.len() {
             return None;
         }
@@ -77,8 +85,8 @@ impl Graph {
         return None;
     }
 
-    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(i32, i32)> {
-        let mut results = Vec::<(i32, i32)>::new();
+    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(N, E)> {
+        //let mut results = Vec::<(i32, i32)>::new();
         let mut distance = vec![usize::MAX; self.nodes.len()];
         let mut priority = BTreeMap::new();
         //let mut heap = BinaryHeap::new();
@@ -113,8 +121,8 @@ impl Graph {
                     priority.insert(edge_data.target, alt);
                     distance[edge_data.target] = alt;
 
-                    let node_data = &self.nodes[edge_data.target];
-                    results.push((node_data.value, edge_data.weight));
+                    //let node_data = &self.nodes[edge_data.target];
+                    // results.push((node_data.value, edge_data.weight));
 
                     if !prev.contains(&node_index) {
                         prev.push(node_index);
@@ -150,7 +158,7 @@ mod tests {
 
     #[test]
     fn two_nodes_no_edges() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::<i32, i32>::new();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);

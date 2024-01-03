@@ -1,11 +1,11 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum TemperatureUnit {
     Celsius,
     Fahrenheit,
     Kelvin,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum LengthUnit {
     Millimeters,
     Centimeters,
@@ -13,7 +13,7 @@ pub enum LengthUnit {
     Kilometers,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum WeightUnit {
     Milligrams,
     Centigrams,
@@ -22,7 +22,7 @@ pub enum WeightUnit {
     Tonne,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum CapacityUnit {
     Millimeters,
     Centiliters,
@@ -30,7 +30,7 @@ pub enum CapacityUnit {
     Kiloliters,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Unit {
     Temperature(TemperatureUnit),
     Length(LengthUnit),
