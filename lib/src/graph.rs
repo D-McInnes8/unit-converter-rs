@@ -15,7 +15,7 @@ pub struct EdgeData<T> {
 
 pub struct Graph<N, E>
 where
-    N: Copy,
+    N: Copy + PartialEq,
     E: Copy,
 {
     nodes: Vec<NodeData<N>>,
@@ -25,11 +25,12 @@ where
 #[derive(Debug, PartialEq)]
 pub enum GraphOperationError {
     NodeDoesNotExist,
+    NodeAlreadyExistsForValue,
 }
 
 impl<N, E> Graph<N, E>
 where
-    N: Copy,
+    N: Copy + PartialEq,
     E: Copy,
 {
     pub fn new() -> Graph<N, E> {
@@ -39,13 +40,19 @@ where
         }
     }
 
-    pub fn add_node(&mut self, value: N) -> NodeIndex {
+    pub fn add_node(&mut self, value: N) -> Result<NodeIndex, GraphOperationError> {
+        for node in &self.nodes {
+            if node.value == value {
+                return Err(GraphOperationError::NodeAlreadyExistsForValue);
+            }
+        }
+
         let index = self.nodes.len();
         self.nodes.push(NodeData {
             value: value,
             edges: Vec::new(),
         });
-        return index;
+        Ok(index)
     }
 
     pub fn add_edge(
@@ -160,8 +167,8 @@ mod tests {
     fn two_nodes_no_edges() {
         let mut graph = Graph::<i32, i32>::new();
 
-        let n0 = graph.add_node(1);
-        let n1 = graph.add_node(2);
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
 
         assert_eq!(graph.get_edge_weight(n0, n1), None);
         assert_eq!(graph.get_edge_weight(n1, n0), None);
@@ -171,8 +178,8 @@ mod tests {
     fn two_nodes_with_single_edge() {
         let mut graph = Graph::new();
 
-        let n0 = graph.add_node(1);
-        let n1 = graph.add_node(2);
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
 
         _ = graph.add_edge(n0, n1, 5);
 
@@ -184,10 +191,10 @@ mod tests {
     fn multiple_nodes_multiple_edges() {
         let mut graph = Graph::new();
 
-        let n0 = graph.add_node(1);
-        let n1 = graph.add_node(2);
-        let n2 = graph.add_node(3);
-        let n3 = graph.add_node(4);
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
+        let n2 = graph.add_node(3).unwrap();
+        let n3 = graph.add_node(4).unwrap();
 
         _ = graph.add_edge(n0, n1, 6);
         _ = graph.add_edge(n1, n0, 5);
@@ -206,8 +213,8 @@ mod tests {
     fn add_invalid_edges_no_nodes() {
         let mut graph = Graph::new();
 
-        let n0 = graph.add_node(1);
-        let n1 = graph.add_node(2);
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
         let n2 = n1 + 1;
 
         let e0 = graph.add_edge(n2, n1, 4);
@@ -219,14 +226,26 @@ mod tests {
     }
 
     #[test]
+    fn add_duplicate_nodes() {
+        let mut graph = Graph::new();
+
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
+        _ = graph.add_edge(n0, n1, 5);
+
+        let actual = graph.add_node(1);
+        assert_eq!(actual, Err(GraphOperationError::NodeAlreadyExistsForValue));
+    }
+
+    #[test]
     fn shortest_path_dijkstra() {
         let mut graph = Graph::new();
 
-        let n0 = graph.add_node(1);
-        let n1 = graph.add_node(2);
-        let n2 = graph.add_node(3);
-        let n3 = graph.add_node(4);
-        let n4 = graph.add_node(5);
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
+        let n2 = graph.add_node(3).unwrap();
+        let n3 = graph.add_node(4).unwrap();
+        let n4 = graph.add_node(5).unwrap();
 
         _ = graph.add_edge(n0, n1, 25);
         _ = graph.add_edge(n1, n3, 30);
@@ -236,5 +255,33 @@ mod tests {
 
         let actual = graph.shortest_path(n0, n3);
         assert_eq!(actual, vec![(2, 25), (4, 30)]);
+    }
+
+    #[test]
+    fn shortest_path_direct_path() {
+        let mut graph = Graph::new();
+
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
+        let n2 = graph.add_node(3).unwrap();
+
+        _ = graph.add_edge(n0, n2, 25);
+        _ = graph.add_edge(n0, n1, 5);
+        _ = graph.add_edge(n1, n2, 10);
+
+        let actual = graph.shortest_path(n0, n2);
+        assert_eq!(actual, vec![(3, 25)]);
+    }
+
+    #[test]
+    fn shortest_path_single_edge() {
+        let mut graph = Graph::new();
+
+        let n0 = graph.add_node(1).unwrap();
+        let n1 = graph.add_node(2).unwrap();
+        _ = graph.add_edge(n0, n1, 30);
+
+        let actual = graph.shortest_path(n0, n1);
+        assert_eq!(actual, vec![(2, 30)])
     }
 }
