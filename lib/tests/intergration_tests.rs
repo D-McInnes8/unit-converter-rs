@@ -1,8 +1,13 @@
-use unitconvert::{ConversionError, UnitConverter};
+use unitconvert::persistence::in_memory::InMemoryConversionStore;
+use unitconvert::units::{TemperatureUnit, Unit};
+use unitconvert::UnitConverter;
 
 #[test]
 pub fn no_default_conversions() {
     let mut converter = UnitConverter::new();
+    let mut store = InMemoryConversionStore::new();
+    converter.add_default_conversions(&store);
+
     let actual = converter.convert_from_expression("20F -> C");
     assert_eq!(actual.ok(), None);
 }
