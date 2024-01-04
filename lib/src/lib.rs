@@ -26,10 +26,18 @@ pub struct UnitConversion {
 }
 
 impl UnitConverter {
+    pub fn builder() -> UnitConverterBuilder {
+        UnitConverterBuilder::new()
+    }
+
     pub fn new() -> UnitConverter {
         UnitConverter {
             graph: Graph::new(),
         }
+    }
+
+    pub fn new2(graph: Graph<Unit, f32>) -> UnitConverter {
+        UnitConverter { graph: graph }
     }
 
     pub fn convert_from_expression(&mut self, input: &str) -> Result<f32, ConversionError> {
@@ -81,8 +89,8 @@ impl UnitConverter {
                 conversion.from, conversion.to, conversion.value
             );
             let reverse = 1.0 / conversion.value;
-            let n0 = self.graph.add_node(conversion.from).unwrap();
-            let n1 = self.graph.add_node(conversion.to).unwrap();
+            let n0 = self.graph.add_node(conversion.from);
+            let n1 = self.graph.add_node(conversion.to);
             _ = self.graph.add_edge(n0, n1, conversion.value);
             _ = self.graph.add_edge(n1, n0, reverse);
             println!(
@@ -92,6 +100,50 @@ impl UnitConverter {
         }
 
         Ok(())
+    }
+}
+
+pub struct UnitConverterBuilder {
+    graph: Graph<Unit, f32>,
+    include_reversed_values: bool,
+}
+
+impl UnitConverterBuilder {
+    pub fn new() -> UnitConverterBuilder {
+        UnitConverterBuilder {
+            graph: Graph::new(),
+            include_reversed_values: false,
+        }
+    }
+
+    pub fn include_reversed_conversion(mut self, include: bool) -> UnitConverterBuilder {
+        self.include_reversed_values = include;
+        self
+    }
+
+    pub fn add_batch(mut self, definitions: Vec<UnitConversion>) -> UnitConverterBuilder {
+        self
+    }
+
+    pub fn add_file(self) -> UnitConverterBuilder {
+        self
+    }
+
+    pub fn add_conversion(mut self, from: Unit, to: Unit, value: f32) -> UnitConverterBuilder {
+        let n0 = self.graph.add_node(from);
+        let n1 = self.graph.add_node(to);
+
+        _ = self.graph.add_edge(n0, n1, value);
+        if self.include_reversed_values {
+            let reversed = 1.0 / value;
+            _ = self.graph.add_edge(n1, n0, reversed);
+        }
+
+        self
+    }
+
+    pub fn build(self) -> UnitConverter {
+        UnitConverter::new2(self.graph)
     }
 }
 
