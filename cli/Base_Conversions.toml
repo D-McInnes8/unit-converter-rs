@@ -1,0 +1,2 @@
+[Length]
+Meters = { Kilometers = 0.001, Centermetres = 100 }

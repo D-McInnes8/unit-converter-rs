@@ -1,6 +1,8 @@
 use core::fmt;
 use std::error::Error;
 
+use toml::{Table, Value};
+
 use self::graph::Graph;
 use self::parser::parse_conversion;
 use self::units::Unit;
@@ -126,6 +128,38 @@ impl UnitConverterBuilder {
     }
 
     pub fn add_file(self) -> UnitConverterBuilder {
+        self
+    }
+
+    pub fn add_toml_conversions(self, file_path: &str) -> UnitConverterBuilder {
+        let contents =
+            std::fs::read_to_string(file_path).expect("Unable to load Toml base conversions.");
+        let config = contents.parse::<Table>().unwrap();
+
+        println!("Configuration:");
+        for (category, list) in config {
+            if let Value::Table(units) = list {
+                for (unit_from, conversions) in units {
+                    if let Value::Table(b) = conversions {
+                        for (unit_to, value) in b {
+                            println!("[{}] {} -> {}: {}", category, unit_from, unit_to, value);
+                        }
+                    }
+                    //println!("[{}] {} -> {}: {}", category, "", unit, value);
+                }
+            }
+        }
+
+        /*for (key, value2) in value {
+            println!("{}: {:?}", key, value2);
+
+            if let Value::Table(table) = value2 {
+                for (key1, value3) in table {
+                    println!("{}: {:?}", key1, value3);
+                }
+            }
+        }*/
+
         self
     }
 

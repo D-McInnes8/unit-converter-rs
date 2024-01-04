@@ -2,7 +2,7 @@ use std::io;
 
 use unitconvert::persistence::in_memory::InMemoryConversionStore;
 use unitconvert::units::{LengthUnit, Unit};
-use unitconvert::UnitConverter;
+use unitconvert::{UnitConverter, UnitConverterBuilder};
 
 fn main() {
     let mut converter = UnitConverter::new();
@@ -12,6 +12,18 @@ fn main() {
         Unit::Length(LengthUnit::Meters),
         0.001,
     );
+
+    //let b = UnitConverter::builder().build();
+
+    let b = UnitConverterBuilder::new()
+        .include_reversed_conversion(true)
+        .add_toml_conversions("Base_Conversions.toml")
+        .add_conversion(
+            Unit::Length(LengthUnit::Kilometers),
+            Unit::Length(LengthUnit::Meters),
+            0.01,
+        )
+        .build();
 
     converter.add_default_conversions(&store);
 
