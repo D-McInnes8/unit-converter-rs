@@ -14,9 +14,9 @@ impl InMemoryConversionStore {
 
     pub fn insert(&mut self, a: Unit, b: Unit, value: f32) {
         self.default_conversions.push(UnitConversion {
-            from: b,
-            to: a,
-            value: value,
+            from: "".to_string(),
+            to: "".to_string(),
+            value: value as f64,
         })
     }
 

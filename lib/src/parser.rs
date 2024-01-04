@@ -25,9 +25,9 @@ pub fn parse_conversion(input: &str) -> Result<UnitConversion, ConversionError> 
     match result {
         Ok((_, (value, convert_from, _, convert_to))) => {
             return Ok(UnitConversion {
-                value: value,
-                from: convert_from,
-                to: convert_to,
+                value: value as f64,
+                from: convert_from.to_string(),
+                to: convert_to.to_string(),
             })
         }
         Err(err) => {
@@ -41,13 +41,14 @@ fn parse_number(input: &str) -> IResult<&str, f32> {
     context("value", float)(input)
 }
 
-fn parse_unit(input: &str) -> IResult<&str, Unit> {
+fn parse_unit(input: &str) -> IResult<&str, &str> {
     alt((
-        value(Unit::Temperature(TemperatureUnit::Celsius), tag("C")),
-        value(Unit::Temperature(TemperatureUnit::Fahrenheit), tag("F")),
-        value(Unit::Temperature(TemperatureUnit::Kelvin), tag("K")),
-        value(Unit::Length(LengthUnit::Kilometers), tag("k")),
-        value(Unit::Length(LengthUnit::Meters), tag("m")),
+        value("Miles", tag("mi")),
+        value("Celsius", tag("C")),
+        value("Fahrenheit", tag("F")),
+        value("Kelvin", tag("K")),
+        value("Kilometers", tag("k")),
+        value("Meters", tag("m")),
     ))(input)
 }
 
@@ -64,8 +65,8 @@ mod tests {
         let mut input = "20C -> F";
         let expected = UnitConversion {
             value: 20.0,
-            from: Unit::Temperature(TemperatureUnit::Celsius),
-            to: Unit::Temperature(TemperatureUnit::Fahrenheit),
+            from: "Celsius".to_string(),
+            to: "Fahrenheit".to_string(),
         };
         let actual = parse_conversion(&mut input).unwrap();
         assert_eq!(expected, actual);

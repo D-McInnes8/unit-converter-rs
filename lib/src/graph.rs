@@ -16,8 +16,7 @@ pub struct EdgeData<T> {
 
 pub struct Graph<N, E>
 where
-    N: Copy + PartialEq + Debug,
-    E: Copy,
+    N: PartialEq + Debug,
 {
     nodes: Vec<NodeData<N>>,
     edges: Vec<EdgeData<E>>,
@@ -31,7 +30,7 @@ pub enum GraphOperationError {
 
 impl<N, E> Graph<N, E>
 where
-    N: Copy + PartialEq + Debug,
+    N: Clone + PartialEq + Debug,
     E: Copy,
 {
     pub fn new() -> Graph<N, E> {
@@ -95,7 +94,7 @@ where
         None
     }
 
-    pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<E> {
+    pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<&E> {
         if source >= self.nodes.len() || target >= self.nodes.len() {
             return None;
         }
@@ -103,14 +102,14 @@ where
         for edge in &self.nodes[source].edges {
             let edge_data = &self.edges[*edge];
             if edge_data.target == target {
-                return Some(edge_data.weight);
+                return Some(&edge_data.weight);
             }
         }
 
         return None;
     }
 
-    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(N, E)> {
+    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(&N, &E)> {
         //let mut results = Vec::<(i32, i32)>::new();
         let mut distance = vec![usize::MAX; self.nodes.len()];
         let mut priority = BTreeMap::new();
@@ -166,8 +165,9 @@ where
         let mut results2 = Vec::new();
         for i in 0..prev.len() - 1 {
             let node_data = &self.nodes[prev[i + 1]];
-            let edge_weight = self.get_edge_weight(prev[i], prev[i + 1]);
-            results2.push((node_data.value, edge_weight.unwrap()));
+            let node_value = &node_data.value;
+            let edge_weight = self.get_edge_weight(prev[i], prev[i + 1]).unwrap();
+            results2.push((node_value, edge_weight));
         }
 
         println!();
@@ -201,7 +201,7 @@ mod tests {
 
         _ = graph.add_edge(n0, n1, 5);
 
-        assert_eq!(graph.get_edge_weight(n0, n1), Some(5));
+        assert_eq!(graph.get_edge_weight(n0, n1), Some(&5));
         assert_eq!(graph.get_edge_weight(n1, n0), None);
     }
 
@@ -219,11 +219,11 @@ mod tests {
         _ = graph.add_edge(n2, n1, 2);
         _ = graph.add_edge(n3, n0, 10);
 
-        assert_eq!(graph.get_edge_weight(n0, n1), Some(6));
-        assert_eq!(graph.get_edge_weight(n1, n0), Some(5));
-        assert_eq!(graph.get_edge_weight(n2, n1), Some(2));
+        assert_eq!(graph.get_edge_weight(n0, n1), Some(&6));
+        assert_eq!(graph.get_edge_weight(n1, n0), Some(&5));
+        assert_eq!(graph.get_edge_weight(n2, n1), Some(&2));
         assert_eq!(graph.get_edge_weight(n1, n2), None);
-        assert_eq!(graph.get_edge_weight(n3, n0), Some(10));
+        assert_eq!(graph.get_edge_weight(n3, n0), Some(&10));
         assert_eq!(graph.get_edge_weight(n0, n3), None);
     }
 
@@ -272,7 +272,7 @@ mod tests {
         _ = graph.add_edge(n3, n4, 40);
 
         let actual = graph.shortest_path(n0, n3);
-        assert_eq!(actual, vec![(2, 25), (4, 30)]);
+        assert_eq!(actual, vec![(&2, &25), (&4, &30)]);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod tests {
         _ = graph.add_edge(n1, n2, 10);
 
         let actual = graph.shortest_path(n0, n2);
-        assert_eq!(actual, vec![(3, 25)]);
+        assert_eq!(actual, vec![(&3, &25)]);
     }
 
     #[test]
@@ -300,6 +300,6 @@ mod tests {
         _ = graph.add_edge(n0, n1, 30);
 
         let actual = graph.shortest_path(n0, n1);
-        assert_eq!(actual, vec![(2, 30)])
+        assert_eq!(actual, vec![(&2, &30)])
     }
 }

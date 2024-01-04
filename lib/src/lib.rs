@@ -17,14 +17,14 @@ pub trait ConversionStore {
 }
 
 pub struct UnitConverter {
-    graph: Graph<Unit, f32>,
+    graph: Graph<String, f64>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitConversion {
-    pub value: f32,
-    pub from: Unit,
-    pub to: Unit,
+    pub value: f64,
+    pub from: String,
+    pub to: String,
 }
 
 impl UnitConverter {
@@ -38,17 +38,17 @@ impl UnitConverter {
         }
     }
 
-    pub fn new2(graph: Graph<Unit, f32>) -> UnitConverter {
+    pub fn new2(graph: Graph<String, f64>) -> UnitConverter {
         UnitConverter { graph: graph }
     }
 
-    pub fn convert_from_expression(&mut self, input: &str) -> Result<f32, ConversionError> {
+    pub fn convert_from_expression(&mut self, input: &str) -> Result<f64, ConversionError> {
         match parse_conversion(&input) {
             Ok(conversion) => {
                 println!("{:?}", conversion);
                 return self.convert_from_definition(
-                    conversion.from,
-                    conversion.to,
+                    &conversion.from,
+                    &conversion.to,
                     conversion.value,
                 );
             }
@@ -60,12 +60,12 @@ impl UnitConverter {
 
     pub fn convert_from_definition(
         &mut self,
-        from: Unit,
-        to: Unit,
-        value: f32,
-    ) -> Result<f32, ConversionError> {
-        let n0 = self.graph.get_node_index(from).unwrap();
-        let n1 = self.graph.get_node_index(to).unwrap();
+        from: &str,
+        to: &str,
+        value: f64,
+    ) -> Result<f64, ConversionError> {
+        let n0 = self.graph.get_node_index(from.to_string()).unwrap();
+        let n1 = self.graph.get_node_index(to.to_string()).unwrap();
         let shortest_path = self.graph.shortest_path(n0, n1);
 
         let mut return_value = value;
@@ -81,39 +81,19 @@ impl UnitConverter {
 
         //Err(ConversionError::new())
     }
-
-    pub fn add_default_conversions(&mut self, store: &impl ConversionStore) -> Result<(), ()> {
-        let default_conversions = store.get_default_conversions()?;
-
-        for conversion in default_conversions {
-            println!(
-                "Adding conversion of {:?} -> {:?} ({})",
-                conversion.from, conversion.to, conversion.value
-            );
-            let reverse = 1.0 / conversion.value;
-            let n0 = self.graph.add_node(conversion.from);
-            let n1 = self.graph.add_node(conversion.to);
-            _ = self.graph.add_edge(n0, n1, conversion.value);
-            _ = self.graph.add_edge(n1, n0, reverse);
-            println!(
-                "Adding conversion of {:?} -> {:?} ({})",
-                conversion.to, conversion.from, reverse
-            );
-        }
-
-        Ok(())
-    }
 }
 
 pub struct UnitConverterBuilder {
-    graph: Graph<Unit, f32>,
+    //graph: Graph<String, f64>,
+    conversions: Vec<UnitConversion>,
     include_reversed_values: bool,
 }
 
 impl UnitConverterBuilder {
     pub fn new() -> UnitConverterBuilder {
         UnitConverterBuilder {
-            graph: Graph::new(),
+            //graph: Graph::new(),
+            conversions: vec![],
             include_reversed_values: false,
         }
     }
@@ -131,7 +111,7 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_toml_conversions(self, file_path: &str) -> UnitConverterBuilder {
+    pub fn add_toml_conversions(mut self, file_path: &str) -> UnitConverterBuilder {
         let contents =
             std::fs::read_to_string(file_path).expect("Unable to load Toml base conversions.");
         let config = contents.parse::<Table>().unwrap();
@@ -143,6 +123,29 @@ impl UnitConverterBuilder {
                     if let Value::Table(b) = conversions {
                         for (unit_to, value) in b {
                             println!("[{}] {} -> {}: {}", category, unit_from, unit_to, value);
+
+                            let f_value = match value {
+                                Value::Float(f) => Some(f),
+                                Value::Integer(i) => Some(i as f64),
+                                _ => None,
+                            };
+
+                            if let Some(num) = f_value {
+                                //self.add_conversion(&unit_from, &unit_to, num);
+                                self.conversions.push(UnitConversion {
+                                    value: num,
+                                    from: unit_from.to_string(),
+                                    to: unit_to.to_string(),
+                                });
+                                if self.include_reversed_values {
+                                    let reversed = 1.0 / num;
+                                    self.conversions.push(UnitConversion {
+                                        value: reversed,
+                                        from: unit_to.to_string(),
+                                        to: unit_from.to_string(),
+                                    });
+                                }
+                            }
                         }
                     }
                     //println!("[{}] {} -> {}: {}", category, "", unit, value);
@@ -163,21 +166,49 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_conversion(mut self, from: Unit, to: Unit, value: f32) -> UnitConverterBuilder {
-        let n0 = self.graph.add_node(from);
-        let n1 = self.graph.add_node(to);
+    pub fn add_conversion(mut self, from: &str, to: &str, value: f64) -> UnitConverterBuilder {
+        /*let n0 = self.graph.add_node(from.to_string());
+        let n1 = self.graph.add_node(to.to_string());
 
         _ = self.graph.add_edge(n0, n1, value);
         if self.include_reversed_values {
             let reversed = 1.0 / value;
             _ = self.graph.add_edge(n1, n0, reversed);
+        }*/
+
+        self.conversions.push(UnitConversion {
+            value: value,
+            from: from.to_string(),
+            to: to.to_string(),
+        });
+
+        if self.include_reversed_values {
+            let reversed = 1.0 / value;
+            self.conversions.push(UnitConversion {
+                value: reversed,
+                from: to.to_string(),
+                to: from.to_string(),
+            });
         }
 
         self
     }
 
     pub fn build(self) -> UnitConverter {
-        UnitConverter::new2(self.graph)
+        let mut graph = Graph::new();
+
+        println!("Filling graph... {}", self.conversions.len());
+        for conversion in &self.conversions {
+            println!(
+                "{} -> {}: {}",
+                &conversion.from, &conversion.to, &conversion.value
+            );
+            let n0 = graph.add_node(conversion.from.clone());
+            let n1 = graph.add_node(conversion.to.clone());
+            _ = graph.add_edge(n0, n1, conversion.value);
+        }
+
+        UnitConverter::new2(graph)
     }
 }
 

@@ -5,27 +5,11 @@ use unitconvert::units::{LengthUnit, Unit};
 use unitconvert::{UnitConverter, UnitConverterBuilder};
 
 fn main() {
-    let mut converter = UnitConverter::new();
-    let mut store = InMemoryConversionStore::new();
-    store.insert(
-        Unit::Length(LengthUnit::Kilometers),
-        Unit::Length(LengthUnit::Meters),
-        0.001,
-    );
-
-    //let b = UnitConverter::builder().build();
-
-    let b = UnitConverterBuilder::new()
+    let mut converter = UnitConverterBuilder::new()
         .include_reversed_conversion(true)
         .add_toml_conversions("Base_Conversions.toml")
-        .add_conversion(
-            Unit::Length(LengthUnit::Kilometers),
-            Unit::Length(LengthUnit::Meters),
-            0.01,
-        )
+        //.add_conversion("Kilometers", "Meters", 0.01)
         .build();
-
-    converter.add_default_conversions(&store);
 
     loop {
         let mut input = String::new();
