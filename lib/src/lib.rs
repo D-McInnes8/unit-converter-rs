@@ -7,8 +7,8 @@ use self::units::Unit;
 
 mod graph;
 mod parser;
-mod persistence;
-mod units;
+pub mod persistence;
+pub mod units;
 
 pub trait ConversionStore {
     fn get_default_conversions(&self) -> Result<Vec<UnitConversion>, ()>;
@@ -54,11 +54,43 @@ impl UnitConverter {
         to: Unit,
         value: f32,
     ) -> Result<f32, ConversionError> {
-        Err(ConversionError::new())
+        let n0 = self.graph.get_node_index(from).unwrap();
+        let n1 = self.graph.get_node_index(to).unwrap();
+        let shortest_path = self.graph.shortest_path(n0, n1);
+
+        let mut return_value = value;
+        for (unit, conversion) in shortest_path {
+            println!(
+                "Applying value * {} ({:?}). Expression is {} *= {}",
+                conversion, unit, return_value, conversion
+            );
+            return_value *= conversion;
+        }
+
+        Ok(return_value)
+
+        //Err(ConversionError::new())
     }
 
     pub fn add_default_conversions(&mut self, store: &impl ConversionStore) -> Result<(), ()> {
         let default_conversions = store.get_default_conversions()?;
+
+        for conversion in default_conversions {
+            println!(
+                "Adding conversion of {:?} -> {:?} ({})",
+                conversion.from, conversion.to, conversion.value
+            );
+            let reverse = 1.0 / conversion.value;
+            let n0 = self.graph.add_node(conversion.from).unwrap();
+            let n1 = self.graph.add_node(conversion.to).unwrap();
+            _ = self.graph.add_edge(n0, n1, conversion.value);
+            _ = self.graph.add_edge(n1, n0, reverse);
+            println!(
+                "Adding conversion of {:?} -> {:?} ({})",
+                conversion.to, conversion.from, reverse
+            );
+        }
+
         Ok(())
     }
 }

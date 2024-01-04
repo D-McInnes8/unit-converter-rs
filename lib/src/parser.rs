@@ -12,7 +12,7 @@ use nom::{
 };
 
 use crate::{
-    units::{TemperatureUnit, Unit},
+    units::{LengthUnit, TemperatureUnit, Unit},
     ConversionError, UnitConversion,
 };
 
@@ -46,6 +46,8 @@ fn parse_unit(input: &str) -> IResult<&str, Unit> {
         value(Unit::Temperature(TemperatureUnit::Celsius), tag("C")),
         value(Unit::Temperature(TemperatureUnit::Fahrenheit), tag("F")),
         value(Unit::Temperature(TemperatureUnit::Kelvin), tag("K")),
+        value(Unit::Length(LengthUnit::Kilometers), tag("k")),
+        value(Unit::Length(LengthUnit::Meters), tag("m")),
     ))(input)
 }
 

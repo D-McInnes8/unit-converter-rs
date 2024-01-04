@@ -7,27 +7,58 @@ pub enum TemperatureUnit {
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum LengthUnit {
+    // Metric
     Millimeters,
     Centimeters,
     Meters,
     Kilometers,
+
+    // Imperial
+    Inch,
+    Hand,
+    Feet,
+    Yard,
+    Mile,
+    League,
+
+    // Maritime
+    Fathom,
+    Cable,
+    NauticalMile,
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum WeightUnit {
+    // Metric
     Milligrams,
     Centigrams,
     Grams,
     Kilograms,
     Tonne,
+
+    // Imperial
+    Grain,
+    Ounce,
+    Quarter,
+    Stone,
+    Pound,
+    Ton,
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum CapacityUnit {
+    // Metric
     Millimeters,
     Centiliters,
     Liters,
     Kiloliters,
+
+    // Imperial
+    FluidOunce,
+    Gill,
+    Pint,
+    Quart,
+    Gallon,
 }
 
 #[derive(Debug, Clone, PartialEq, Copy)]

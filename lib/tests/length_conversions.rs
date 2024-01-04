@@ -13,6 +13,6 @@ fn convert_kilometers_to_meters() {
     );
     converter.add_default_conversions(&store);
 
-    let actual = converter.convert_from_expression("1km -> m");
+    let actual = converter.convert_from_expression("1k -> m");
     assert_eq!(actual.ok(), Some(1000.0));
 }

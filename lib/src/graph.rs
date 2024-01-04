@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::{Debug, Display};
 
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
@@ -15,7 +16,7 @@ pub struct EdgeData<T> {
 
 pub struct Graph<N, E>
 where
-    N: Copy + PartialEq,
+    N: Copy + PartialEq + Debug,
     E: Copy,
 {
     nodes: Vec<NodeData<N>>,
@@ -30,7 +31,7 @@ pub enum GraphOperationError {
 
 impl<N, E> Graph<N, E>
 where
-    N: Copy + PartialEq,
+    N: Copy + PartialEq + Debug,
     E: Copy,
 {
     pub fn new() -> Graph<N, E> {
@@ -75,6 +76,20 @@ where
 
         node_data.edges.push(edge_index);
         return Ok(());
+    }
+
+    pub fn get_node_index(&self, node_value: N) -> Option<NodeIndex> {
+        let mut i = 0;
+        println!("Nodes in graph: {}", self.nodes.len());
+        for node in &self.nodes {
+            println!("Is {:?} == {:?}", node.value, node_value);
+            if node.value == node_value {
+                println!("True, return {}", i);
+                return Some(i);
+            }
+            i += 1;
+        }
+        None
     }
 
     pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<E> {

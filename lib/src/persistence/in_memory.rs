@@ -1,3 +1,4 @@
+use crate::units::Unit;
 use crate::{ConversionStore, UnitConversion};
 
 pub struct InMemoryConversionStore {
@@ -9,6 +10,14 @@ impl InMemoryConversionStore {
         InMemoryConversionStore {
             default_conversions: Vec::new(),
         }
+    }
+
+    pub fn insert(&mut self, a: Unit, b: Unit, value: f32) {
+        self.default_conversions.push(UnitConversion {
+            from: b,
+            to: a,
+            value: value,
+        })
     }
 
     pub fn add(&mut self, conversion: UnitConversion) {

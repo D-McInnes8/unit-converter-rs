@@ -1,9 +1,20 @@
 use std::io;
 
+use unitconvert::persistence::in_memory::InMemoryConversionStore;
+use unitconvert::units::{LengthUnit, Unit};
 use unitconvert::UnitConverter;
 
 fn main() {
     let mut converter = UnitConverter::new();
+    let mut store = InMemoryConversionStore::new();
+    store.insert(
+        Unit::Length(LengthUnit::Kilometers),
+        Unit::Length(LengthUnit::Meters),
+        0.001,
+    );
+
+    converter.add_default_conversions(&store);
+
     loop {
         let mut input = String::new();
         match io::stdin().read_line(&mut input) {
