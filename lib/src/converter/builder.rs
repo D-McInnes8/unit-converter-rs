@@ -5,7 +5,8 @@ use toml::{Table, Value};
 
 use crate::graph::Graph;
 use crate::parser::UnitAbbreviation;
-use crate::{UnitConversion, UnitConverter};
+
+use super::{UnitConversion, UnitConverter};
 
 pub struct UnitConverterBuilder {
     unit_types: HashSet<String>,

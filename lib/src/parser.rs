@@ -12,10 +12,7 @@ use nom::{
     Err, IResult, Parser,
 };
 
-use crate::{
-    units::{LengthUnit, TemperatureUnit, Unit},
-    ConversionError, UnitConversion,
-};
+use crate::converter::{error::ConversionError, UnitConversion};
 
 #[derive(Debug)]
 pub struct UnitAbbreviation {
