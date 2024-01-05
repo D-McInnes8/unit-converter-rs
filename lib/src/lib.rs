@@ -1,11 +1,11 @@
 use core::fmt;
 use std::error::Error;
 
+use log::{debug, info, trace};
 use toml::{Table, Value};
 
 use self::graph::Graph;
 use self::parser::parse_conversion;
-use self::units::Unit;
 
 mod graph;
 mod parser;
@@ -45,7 +45,7 @@ impl UnitConverter {
     pub fn convert_from_expression(&mut self, input: &str) -> Result<f64, ConversionError> {
         match parse_conversion(&input) {
             Ok(conversion) => {
-                println!("{:?}", conversion);
+                info!("Parsed {:?}", conversion);
                 return self.convert_from_definition(
                     &conversion.from,
                     &conversion.to,
@@ -70,36 +70,39 @@ impl UnitConverter {
 
         let mut return_value = value;
         for (unit, conversion) in shortest_path {
-            println!(
-                "Applying value * {} ({:?}). Expression is {} *= {}",
-                conversion, unit, return_value, conversion
+            info!(
+                "Converting value to {}. Expresion is {} *= {}",
+                unit, return_value, conversion
             );
             return_value *= conversion;
         }
 
         Ok(return_value)
-
-        //Err(ConversionError::new())
     }
 }
 
 pub struct UnitConverterBuilder {
-    //graph: Graph<String, f64>,
     conversions: Vec<UnitConversion>,
     include_reversed_values: bool,
+    show_debug_messages: bool,
 }
 
 impl UnitConverterBuilder {
     pub fn new() -> UnitConverterBuilder {
         UnitConverterBuilder {
-            //graph: Graph::new(),
             conversions: vec![],
             include_reversed_values: false,
+            show_debug_messages: false,
         }
     }
 
     pub fn include_reversed_conversion(mut self, include: bool) -> UnitConverterBuilder {
         self.include_reversed_values = include;
+        self
+    }
+
+    pub fn show_debug_messages(mut self, show: bool) -> UnitConverterBuilder {
+        self.show_debug_messages = show;
         self
     }
 
@@ -115,14 +118,17 @@ impl UnitConverterBuilder {
         let contents =
             std::fs::read_to_string(file_path).expect("Unable to load Toml base conversions.");
         let config = contents.parse::<Table>().unwrap();
+        let initial_count = self.conversions.len();
 
-        println!("Configuration:");
         for (category, list) in config {
             if let Value::Table(units) = list {
                 for (unit_from, conversions) in units {
                     if let Value::Table(b) = conversions {
                         for (unit_to, value) in b {
-                            println!("[{}] {} -> {}: {}", category, unit_from, unit_to, value);
+                            debug!(
+                                "Imported Base Conversion: [{}] {} -> {}: {}",
+                                category, unit_from, unit_to, value
+                            );
 
                             let f_value = match value {
                                 Value::Float(f) => Some(f),
@@ -148,34 +154,20 @@ impl UnitConverterBuilder {
                             }
                         }
                     }
-                    //println!("[{}] {} -> {}: {}", category, "", unit, value);
                 }
             }
         }
 
-        /*for (key, value2) in value {
-            println!("{}: {:?}", key, value2);
-
-            if let Value::Table(table) = value2 {
-                for (key1, value3) in table {
-                    println!("{}: {:?}", key1, value3);
-                }
-            }
-        }*/
+        info!(
+            "Imported {} default unit conversions from {}",
+            self.conversions.len() - initial_count,
+            file_path
+        );
 
         self
     }
 
     pub fn add_conversion(mut self, from: &str, to: &str, value: f64) -> UnitConverterBuilder {
-        /*let n0 = self.graph.add_node(from.to_string());
-        let n1 = self.graph.add_node(to.to_string());
-
-        _ = self.graph.add_edge(n0, n1, value);
-        if self.include_reversed_values {
-            let reversed = 1.0 / value;
-            _ = self.graph.add_edge(n1, n0, reversed);
-        }*/
-
         self.conversions.push(UnitConversion {
             value: value,
             from: from.to_string(),
@@ -197,10 +189,16 @@ impl UnitConverterBuilder {
     pub fn build(self) -> UnitConverter {
         let mut graph = Graph::new();
 
-        println!("Filling graph... {}", self.conversions.len());
+        info!("Filling in graph with default unit conversions");
         for conversion in &self.conversions {
-            println!(
+            trace!(
                 "{} -> {}: {}",
+                &conversion.from,
+                &conversion.to,
+                &conversion.value
+            );
+            info!(
+                "Adding edge to graph for default conversion {} -> {} (x *= {})",
                 &conversion.from, &conversion.to, &conversion.value
             );
             let n0 = graph.add_node(conversion.from.clone());

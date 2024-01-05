@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 use std::fmt::{Debug, Display};
 
+use log::{debug, warn};
+
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
@@ -45,12 +47,21 @@ where
         for node in &self.nodes {
             if node.value == value {
                 //return Err(GraphOperationError::NodeAlreadyExistsForValue);
+                debug!(
+                    "Attempted to insert a node with a value {:?} that already exists, returning existing ({})",
+                    &value,
+                    existing
+                );
                 return existing;
             }
             existing += 1;
         }
 
         let index = self.nodes.len();
+        debug!(
+            "Inserting new node for value {:?} at index {}",
+            &value, &index
+        );
         self.nodes.push(NodeData {
             value: value,
             edges: Vec::new(),
@@ -65,6 +76,7 @@ where
         weight: E,
     ) -> Result<(), GraphOperationError> {
         if source >= self.nodes.len() || target >= self.nodes.len() {
+            warn!("Failed trying to create edge because at least one node doesn't exist (Source: {}, Target: {})", source, target);
             return Err(GraphOperationError::NodeDoesNotExist);
         }
 
@@ -82,11 +94,8 @@ where
 
     pub fn get_node_index(&self, node_value: N) -> Option<NodeIndex> {
         let mut i = 0;
-        println!("Nodes in graph: {}", self.nodes.len());
         for node in &self.nodes {
-            println!("Is {:?} == {:?}", node.value, node_value);
             if node.value == node_value {
-                println!("True, return {}", i);
                 return Some(i);
             }
             i += 1;
@@ -122,31 +131,21 @@ where
 
         while let Some((node_index, weight)) = priority.pop_first() {
             if node_index == target {
-                println!("Is target node, breaking loop");
                 break;
             }
 
             if weight > distance[node_index] {
-                println!("Weight > Distance, continueing to next node");
                 continue;
             }
 
-            println!("Checking for node {}", node_index);
             for edge in &self.nodes[node_index].edges {
                 let edge_data = &self.edges[*edge];
                 //let alt = weight + edge_data.weight as usize;
                 let alt = weight + 1;
 
                 if alt < distance[edge_data.target] {
-                    println!(
-                        "Alt value {} is less than {} for adjcent node {}",
-                        alt, distance[edge_data.target], edge_data.target
-                    );
                     priority.insert(edge_data.target, alt);
                     distance[edge_data.target] = alt;
-
-                    //let node_data = &self.nodes[edge_data.target];
-                    // results.push((node_data.value, edge_data.weight));
 
                     if !prev.contains(&node_index) {
                         prev.push(node_index);
@@ -155,13 +154,11 @@ where
             }
         }
         prev.push(target);
+        debug!(
+            "Djikstra shortest path calculated distances: {:?}",
+            distance
+        );
 
-        println!("Distance");
-        for (index, weight) in distance.iter().enumerate() {
-            println!("Index: {}, Weight: {}", index, weight);
-        }
-
-        println!("Path");
         let mut results2 = Vec::new();
         for i in 0..prev.len() - 1 {
             let node_data = &self.nodes[prev[i + 1]];
@@ -169,9 +166,6 @@ where
             let edge_weight = self.get_edge_weight(prev[i], prev[i + 1]).unwrap();
             results2.push((node_value, edge_weight));
         }
-
-        println!();
-        println!();
 
         return results2;
     }

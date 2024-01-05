@@ -10,6 +10,8 @@ name = "unitconverter"
 path = "src/main.rs"
 
 [dependencies]
+console = "0.15.7"
+log = "0.4.20"
 
 [dependencies.unitconvert]
 version = "0.1.0"

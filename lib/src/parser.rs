@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use log::error;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while_m_n},
@@ -31,7 +32,9 @@ pub fn parse_conversion(input: &str) -> Result<UnitConversion, ConversionError> 
             })
         }
         Err(err) => {
-            eprintln!("Parse Error: {}", err);
+            //eprintln!("Parse Error: {}", err);
+            error!("Error parsing expression {}", input);
+            error!("{}", err);
             return Err(ConversionError::new());
         }
     }
