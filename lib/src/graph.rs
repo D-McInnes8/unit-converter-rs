@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use log::{debug, warn};
 
@@ -20,6 +20,7 @@ pub struct Graph<N, E>
 where
     N: PartialEq + Debug,
 {
+    id: String,
     nodes: Vec<NodeData<N>>,
     edges: Vec<EdgeData<E>>,
 }
@@ -35,8 +36,17 @@ where
     N: Clone + PartialEq + Debug,
     E: Copy,
 {
-    pub fn new() -> Graph<N, E> {
+    pub fn default() -> Graph<N, E> {
         Graph {
+            id: String::new(),
+            nodes: Vec::new(),
+            edges: Vec::new(),
+        }
+    }
+
+    pub fn new(id: String) -> Graph<N, E> {
+        Graph {
+            id: id,
             nodes: Vec::new(),
             edges: Vec::new(),
         }
@@ -177,7 +187,7 @@ mod tests {
 
     #[test]
     fn two_nodes_no_edges() {
-        let mut graph = Graph::<i32, i32>::new();
+        let mut graph = Graph::<i32, i32>::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -188,7 +198,7 @@ mod tests {
 
     #[test]
     fn two_nodes_with_single_edge() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -201,7 +211,7 @@ mod tests {
 
     #[test]
     fn multiple_nodes_multiple_edges() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -223,7 +233,7 @@ mod tests {
 
     #[test]
     fn add_invalid_edges_no_nodes() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -239,7 +249,7 @@ mod tests {
 
     #[test]
     fn add_duplicate_nodes() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -251,7 +261,7 @@ mod tests {
 
     #[test]
     fn shortest_path_dijkstra() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -271,7 +281,7 @@ mod tests {
 
     #[test]
     fn shortest_path_direct_path() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);
@@ -287,7 +297,7 @@ mod tests {
 
     #[test]
     fn shortest_path_single_edge() {
-        let mut graph = Graph::new();
+        let mut graph = Graph::default();
 
         let n0 = graph.add_node(1);
         let n1 = graph.add_node(2);

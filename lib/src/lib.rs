@@ -25,6 +25,7 @@ pub struct UnitConversion {
     pub value: f64,
     pub from: String,
     pub to: String,
+    pub unit_type: String,
 }
 
 impl UnitConverter {
@@ -32,14 +33,7 @@ impl UnitConverter {
         UnitConverterBuilder::new()
     }
 
-    pub fn new() -> UnitConverter {
-        UnitConverter {
-            graph: Graph::new(),
-            abbreviations: vec![],
-        }
-    }
-
-    pub fn new2(graph: Graph<String, f64>, abbreviations: Vec<UnitAbbreviation>) -> UnitConverter {
+    pub fn new(graph: Graph<String, f64>, abbreviations: Vec<UnitAbbreviation>) -> UnitConverter {
         UnitConverter {
             graph: graph,
             abbreviations: abbreviations,
@@ -126,28 +120,29 @@ impl UnitConverterBuilder {
         let config = contents.parse::<Table>().unwrap();
 
         for (category, units_table) in config {
-            if category == "abbreviations" {
-                info!("Loading unit abbreviations");
-                if let Value::Table(units) = units_table {
-                    for (unit, abbreviations_array) in &units {
-                        debug!(
-                            "Loading abbreviations {:?} for unit {}",
-                            &abbreviations_array, &unit
-                        );
+            //if category == "abbreviations" {
+            info!("Loading unit abbreviations");
+            if let Value::Table(units) = units_table {
+                for (unit, abbreviations_array) in &units {
+                    debug!(
+                        "Loading abbreviations {:?} for unit {}",
+                        &abbreviations_array, &unit
+                    );
 
-                        if let Value::Array(abbreviations) = abbreviations_array {
-                            for value in abbreviations {
-                                if let Value::String(abbrev) = value {
-                                    self.abbreviations.push(UnitAbbreviation {
-                                        unit: unit.to_string(),
-                                        abbrev: abbrev.to_string(),
-                                    });
-                                }
+                    if let Value::Array(abbreviations) = abbreviations_array {
+                        for value in abbreviations {
+                            if let Value::String(abbrev) = value {
+                                self.abbreviations.push(UnitAbbreviation {
+                                    unit: unit.to_string(),
+                                    abbrev: abbrev.to_string(),
+                                    unit_type: category.to_string(),
+                                });
                             }
                         }
                     }
                 }
             }
+            //}
         }
 
         self
@@ -181,6 +176,7 @@ impl UnitConverterBuilder {
                                     value: num,
                                     from: unit_from.to_string(),
                                     to: unit_to.to_string(),
+                                    unit_type: category.to_string(),
                                 });
                                 if self.include_reversed_values {
                                     let reversed = 1.0 / num;
@@ -188,6 +184,7 @@ impl UnitConverterBuilder {
                                         value: reversed,
                                         from: unit_to.to_string(),
                                         to: unit_from.to_string(),
+                                        unit_type: category.to_string(),
                                     });
                                 }
                             }
@@ -206,11 +203,18 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_conversion(mut self, from: &str, to: &str, value: f64) -> UnitConverterBuilder {
+    pub fn add_conversion(
+        mut self,
+        unit_type: &str,
+        from: &str,
+        to: &str,
+        value: f64,
+    ) -> UnitConverterBuilder {
         self.conversions.push(UnitConversion {
             value: value,
             from: from.to_string(),
             to: to.to_string(),
+            unit_type: unit_type.to_string(),
         });
 
         if self.include_reversed_values {
@@ -219,6 +223,7 @@ impl UnitConverterBuilder {
                 value: reversed,
                 from: to.to_string(),
                 to: from.to_string(),
+                unit_type: unit_type.to_string(),
             });
         }
 
@@ -226,7 +231,7 @@ impl UnitConverterBuilder {
     }
 
     pub fn build(self) -> UnitConverter {
-        let mut graph = Graph::new();
+        let mut graph = Graph::new("Length".to_string());
 
         info!(
             "Populating graph with {} default unit conversions",
@@ -252,7 +257,7 @@ impl UnitConverterBuilder {
             "Finished building unit converter object. Object contains abbreviations for {} units",
             &self.abbreviations.len()
         );
-        UnitConverter::new2(graph, self.abbreviations)
+        UnitConverter::new(graph, self.abbreviations)
     }
 }
 

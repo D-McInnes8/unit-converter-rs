@@ -21,6 +21,7 @@ use crate::{
 pub struct UnitAbbreviation {
     pub unit: String,
     pub abbrev: String,
+    pub unit_type: String,
 }
 
 pub fn parse_conversion(
@@ -46,22 +47,27 @@ pub fn parse_conversion(
 
     match result {
         Ok((_, (value, convert_from, _, convert_to))) => {
-            let parsed_convert_from = parse_unit(&abbreviations, convert_from)?;
+            let (first_type, parsed_convert_from) = parse_unit(&abbreviations, convert_from)?;
             debug!(
                 "Parsed first unit from {} to {}",
                 convert_from, parsed_convert_from
             );
 
-            let parsed_convert_to = parse_unit(&abbreviations, convert_to)?;
+            let (second_type, parsed_convert_to) = parse_unit(&abbreviations, convert_to)?;
             debug!(
                 "Parsed second unit from {} to {}",
                 convert_to, parsed_convert_to
             );
 
+            if first_type != second_type {
+                return Err(ConversionError::new("Units are of different types"));
+            }
+
             return Ok(UnitConversion {
                 value: value,
                 from: parsed_convert_from,
                 to: parsed_convert_to,
+                unit_type: first_type,
             });
         }
         Err(err) => {
@@ -85,11 +91,14 @@ fn parse_operator(input: &str) -> IResult<&str, &str> {
     alt((tag(" -> "), tag("->"), tag(" to ")))(input)
 }
 
-fn parse_unit(units: &Vec<UnitAbbreviation>, input: &str) -> Result<String, ConversionError> {
+fn parse_unit(
+    units: &Vec<UnitAbbreviation>,
+    input: &str,
+) -> Result<(String, String), ConversionError> {
     let input_lc = input.to_lowercase();
     for unit in units {
         if unit.abbrev == input_lc {
-            return Ok(unit.unit.to_string());
+            return Ok((unit.unit_type.to_string(), unit.unit.to_string()));
         }
     }
     error!("Error parsing {} into a valid unit", input);
@@ -108,10 +117,12 @@ mod tests {
             UnitAbbreviation {
                 unit: "Celsius".to_string(),
                 abbrev: "C".to_string(),
+                unit_type: "Temperature".to_string(),
             },
             UnitAbbreviation {
                 unit: "Fahrenheit".to_string(),
                 abbrev: "F".to_string(),
+                unit_type: "Temperature".to_string(),
             },
         ]
     }
@@ -125,6 +136,7 @@ mod tests {
             value: 20.0,
             from: "Celsius".to_string(),
             to: "Fahrenheit".to_string(),
+            unit_type: "Temperature".to_string(),
         };
         let actual = parse_conversion(&abbreviations, &mut input).unwrap();
         assert_eq!(expected, actual);
