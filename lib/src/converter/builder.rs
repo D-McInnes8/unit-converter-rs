@@ -45,7 +45,7 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_toml_units(mut self, file_path: &str) -> UnitConverterBuilder {
+    pub fn add_unit_definitions_toml(mut self, file_path: &str) -> UnitConverterBuilder {
         let contents = std::fs::read_to_string(file_path)
             .expect("Unable to load unit abbreviations from toml file.");
         let config = contents.parse::<Table>().unwrap();
@@ -77,7 +77,7 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_toml_conversions(mut self, file_path: &str) -> UnitConverterBuilder {
+    pub fn add_default_conversions_toml(mut self, file_path: &str) -> UnitConverterBuilder {
         let contents =
             std::fs::read_to_string(file_path).expect("Unable to load Toml base conversions.");
         let config = contents.parse::<Table>().unwrap();
