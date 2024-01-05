@@ -1,8 +1,7 @@
 use std::io;
 
-use log::{debug, error, info, trace, warn};
-use unitconvert::units::{LengthUnit, Unit};
-use unitconvert::{UnitConverter, UnitConverterBuilder};
+use log::info;
+use unitconvert::converter::builder::UnitConverterBuilder;
 
 use self::logger::ConsoleLogger;
 
