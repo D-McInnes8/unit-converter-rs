@@ -1,13 +1,13 @@
-use core::fmt;
 use std::collections::HashSet;
-use std::error::Error;
 
-use log::{debug, error, info, trace};
+use log::{debug, error, info};
 use toml::{Table, Value};
 
+use self::converter::error::ConversionError;
 use self::graph::Graph;
 use self::parser::{parse_conversion, UnitAbbreviation};
 
+pub mod converter;
 mod graph;
 mod parser;
 pub mod units;
@@ -286,47 +286,5 @@ impl UnitConverterBuilder {
             graphs.len(), &self.abbreviations.len()
         );
         UnitConverter::new(graphs, self.abbreviations)
-    }
-}
-
-#[derive(Debug)]
-pub struct ConversionError {
-    source: Option<Box<dyn Error>>,
-    message: Option<String>,
-}
-
-impl ConversionError {
-    fn default() -> ConversionError {
-        ConversionError {
-            source: None,
-            message: None,
-        }
-    }
-
-    fn new(message: &str) -> ConversionError {
-        ConversionError {
-            source: None,
-            message: Some(message.to_string()),
-        }
-    }
-}
-
-impl fmt::Display for ConversionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(source) = &self.source {
-            return write!(f, "{}", source.to_string());
-        }
-
-        let error_message = match &self.message {
-            Some(err) => err,
-            None => "Error executing conversion",
-        };
-        write!(f, "{}", error_message)
-    }
-}
-
-impl Error for ConversionError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        self.source.as_deref()
     }
 }
