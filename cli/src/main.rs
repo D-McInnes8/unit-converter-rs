@@ -1,7 +1,6 @@
 use std::io;
 
 use log::{debug, error, info, trace, warn};
-use unitconvert::persistence::in_memory::InMemoryConversionStore;
 use unitconvert::units::{LengthUnit, Unit};
 use unitconvert::{UnitConverter, UnitConverterBuilder};
 
@@ -16,6 +15,7 @@ fn main() {
     let mut converter = UnitConverterBuilder::new()
         .show_debug_messages(true)
         .include_reversed_conversion(true)
+        .add_toml_units("Units.toml")
         .add_toml_conversions("Base_Conversions.toml")
         //.add_conversion("Kilometers", "Meters", 0.01)
         .build();

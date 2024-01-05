@@ -5,11 +5,10 @@ use log::{debug, info, trace};
 use toml::{Table, Value};
 
 use self::graph::Graph;
-use self::parser::parse_conversion;
+use self::parser::{parse_conversion, UnitAbbreviation};
 
 mod graph;
 mod parser;
-pub mod persistence;
 pub mod units;
 
 pub trait ConversionStore {
@@ -18,6 +17,7 @@ pub trait ConversionStore {
 
 pub struct UnitConverter {
     graph: Graph<String, f64>,
+    abbreviations: Vec<UnitAbbreviation>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -35,15 +35,19 @@ impl UnitConverter {
     pub fn new() -> UnitConverter {
         UnitConverter {
             graph: Graph::new(),
+            abbreviations: vec![],
         }
     }
 
-    pub fn new2(graph: Graph<String, f64>) -> UnitConverter {
-        UnitConverter { graph: graph }
+    pub fn new2(graph: Graph<String, f64>, abbreviations: Vec<UnitAbbreviation>) -> UnitConverter {
+        UnitConverter {
+            graph: graph,
+            abbreviations: abbreviations,
+        }
     }
 
     pub fn convert_from_expression(&mut self, input: &str) -> Result<f64, ConversionError> {
-        match parse_conversion(&input) {
+        match parse_conversion(&self.abbreviations, &input) {
             Ok(conversion) => {
                 info!("Parsed {:?}", conversion);
                 return self.convert_from_definition(
@@ -53,7 +57,7 @@ impl UnitConverter {
                 );
             }
             Err(err) => {
-                return Err(ConversionError::new());
+                return Err(err);
             }
         }
     }
@@ -83,6 +87,7 @@ impl UnitConverter {
 
 pub struct UnitConverterBuilder {
     conversions: Vec<UnitConversion>,
+    abbreviations: Vec<UnitAbbreviation>,
     include_reversed_values: bool,
     show_debug_messages: bool,
 }
@@ -91,6 +96,7 @@ impl UnitConverterBuilder {
     pub fn new() -> UnitConverterBuilder {
         UnitConverterBuilder {
             conversions: vec![],
+            abbreviations: vec![],
             include_reversed_values: false,
             show_debug_messages: false,
         }
@@ -111,6 +117,39 @@ impl UnitConverterBuilder {
     }
 
     pub fn add_file(self) -> UnitConverterBuilder {
+        self
+    }
+
+    pub fn add_toml_units(mut self, file_path: &str) -> UnitConverterBuilder {
+        let contents = std::fs::read_to_string(file_path)
+            .expect("Unable to load unit abbreviations from toml file.");
+        let config = contents.parse::<Table>().unwrap();
+
+        for (category, units_table) in config {
+            if category == "abbreviations" {
+                info!("Loading unit abbreviations");
+                if let Value::Table(units) = units_table {
+                    for (unit, abbreviations_array) in &units {
+                        debug!(
+                            "Loading abbreviations {:?} for unit {}",
+                            &abbreviations_array, &unit
+                        );
+
+                        if let Value::Array(abbreviations) = abbreviations_array {
+                            for value in abbreviations {
+                                if let Value::String(abbrev) = value {
+                                    self.abbreviations.push(UnitAbbreviation {
+                                        unit: unit.to_string(),
+                                        abbrev: abbrev.to_string(),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         self
     }
 
@@ -189,7 +228,10 @@ impl UnitConverterBuilder {
     pub fn build(self) -> UnitConverter {
         let mut graph = Graph::new();
 
-        info!("Filling in graph with default unit conversions");
+        info!(
+            "Populating graph with {} default unit conversions",
+            &self.conversions.len()
+        );
         for conversion in &self.conversions {
             trace!(
                 "{} -> {}: {}",
@@ -206,24 +248,47 @@ impl UnitConverterBuilder {
             _ = graph.add_edge(n0, n1, conversion.value);
         }
 
-        UnitConverter::new2(graph)
+        info!(
+            "Finished building unit converter object. Object contains abbreviations for {} units",
+            &self.abbreviations.len()
+        );
+        UnitConverter::new2(graph, self.abbreviations)
     }
 }
 
 #[derive(Debug)]
 pub struct ConversionError {
     source: Option<Box<dyn Error>>,
+    message: Option<String>,
 }
 
 impl ConversionError {
-    fn new() -> ConversionError {
-        ConversionError { source: None }
+    fn default() -> ConversionError {
+        ConversionError {
+            source: None,
+            message: None,
+        }
+    }
+
+    fn new(message: &str) -> ConversionError {
+        ConversionError {
+            source: None,
+            message: Some(message.to_string()),
+        }
     }
 }
 
 impl fmt::Display for ConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error executing conversion")
+        if let Some(source) = &self.source {
+            return write!(f, "{}", source.to_string());
+        }
+
+        let error_message = match &self.message {
+            Some(err) => err,
+            None => "Error executing conversion",
+        };
+        write!(f, "{}", error_message)
     }
 }
 
