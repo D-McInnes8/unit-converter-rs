@@ -1,15 +1,7 @@
-use std::error::Error;
-
 use log::{debug, error, info};
 use nom::{
-    branch::alt,
-    bytes::complete::{tag, take_while_m_n},
-    character::complete::{alpha0, alpha1, digit0},
-    combinator::{map_res, value},
-    error::context,
-    number::complete::{double, float},
-    sequence::{tuple, Tuple},
-    Err, IResult, Parser,
+    branch::alt, bytes::complete::tag, character::complete::alpha1, error::context,
+    number::complete::double, sequence::tuple, IResult,
 };
 
 use crate::converter::{error::ConversionError, UnitConversion};

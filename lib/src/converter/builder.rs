@@ -12,7 +12,7 @@ pub struct UnitConverterBuilder {
     unit_types: HashSet<String>,
     conversions: Vec<UnitConversion>,
     abbreviations: Vec<UnitAbbreviation>,
-    include_reversed_values: bool,
+    auto_reverse: bool,
     show_debug_messages: bool,
 }
 
@@ -22,26 +22,18 @@ impl UnitConverterBuilder {
             unit_types: HashSet::new(),
             conversions: vec![],
             abbreviations: vec![],
-            include_reversed_values: false,
+            auto_reverse: false,
             show_debug_messages: false,
         }
     }
 
-    pub fn include_reversed_conversion(mut self, include: bool) -> UnitConverterBuilder {
-        self.include_reversed_values = include;
+    pub fn auto_reverse_conversions(mut self, include: bool) -> UnitConverterBuilder {
+        self.auto_reverse = include;
         self
     }
 
     pub fn show_debug_messages(mut self, show: bool) -> UnitConverterBuilder {
         self.show_debug_messages = show;
-        self
-    }
-
-    pub fn add_batch(mut self, definitions: Vec<UnitConversion>) -> UnitConverterBuilder {
-        self
-    }
-
-    pub fn add_file(self) -> UnitConverterBuilder {
         self
     }
 
@@ -122,7 +114,7 @@ impl UnitConverterBuilder {
                                     to: unit_to.to_string(),
                                     unit_type: category.to_string(),
                                 });
-                                if self.include_reversed_values {
+                                if self.auto_reverse {
                                     let reversed = 1.0 / num;
                                     self.conversions.push(UnitConversion {
                                         value: reversed,
@@ -162,7 +154,7 @@ impl UnitConverterBuilder {
             unit_type: unit_type.to_string(),
         });
 
-        if self.include_reversed_values {
+        if self.auto_reverse {
             let reversed = 1.0 / value;
             self.conversions.push(UnitConversion {
                 value: reversed,

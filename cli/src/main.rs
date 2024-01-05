@@ -13,7 +13,7 @@ fn main() {
     info!("Building unit converter object");
     let mut converter = UnitConverterBuilder::new()
         .show_debug_messages(true)
-        .include_reversed_conversion(true)
+        .auto_reverse_conversions(true)
         .add_unit_definitions_toml("Units.toml")
         .add_default_conversions_toml("Base_Conversions.toml")
         .build();
@@ -29,9 +29,6 @@ fn main() {
                     let command = remove_new_line_characters(&input);
                     if command == "exit" {
                         return;
-                    }
-                    if command == "test" {
-                        //graph_test();
                     }
 
                     match converter.convert_from_expression(&command) {

@@ -3,7 +3,7 @@ use unitconvert::converter::builder::UnitConverterBuilder;
 #[test]
 fn convert_kilometers_to_meters() {
     let mut converter = UnitConverterBuilder::new()
-        .include_reversed_conversion(true)
+        .auto_reverse_conversions(true)
         .add_unit_definition("Length", "Meters", "m")
         .add_unit_definition("Length", "Kilometers", "k")
         .add_conversion("Length", "Meters", "Kilometers", 0.001)
