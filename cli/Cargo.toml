@@ -10,6 +10,7 @@ name = "unitconverter"
 path = "src/main.rs"
 
 [dependencies]
+clap = { version = "4.4.11", features = ["derive"] }
 console = "0.15.7"
 log = "0.4.20"
 

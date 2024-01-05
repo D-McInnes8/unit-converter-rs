@@ -1,12 +1,22 @@
 use console::{style, Color};
 
+use crate::options::LogLevel;
+
 pub struct ConsoleLogger;
 
 static LOGGER: ConsoleLogger = ConsoleLogger;
 
 impl ConsoleLogger {
-    pub fn init() {
-        _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Info));
+    pub fn init(log_level: &Option<LogLevel>) {
+        let level_filter = match log_level {
+            Some(LogLevel::Trace) => log::LevelFilter::Trace,
+            Some(LogLevel::Debug) => log::LevelFilter::Debug,
+            Some(LogLevel::Info) => log::LevelFilter::Info,
+            Some(LogLevel::Warning) => log::LevelFilter::Warn,
+            None => log::LevelFilter::Error,
+        };
+
+        _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(level_filter));
     }
 }
 

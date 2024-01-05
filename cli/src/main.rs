@@ -1,14 +1,20 @@
 use std::io;
 
-use log::info;
+use clap::Parser;
+use log::{debug, info};
 use unitconvert::converter::builder::UnitConverterBuilder;
+
+use crate::options::CliOptions;
 
 use self::logger::ConsoleLogger;
 
 mod logger;
+mod options;
 
 fn main() {
-    ConsoleLogger::init();
+    let cli = CliOptions::parse();
+    ConsoleLogger::init(&cli.debug);
+    debug!("Cli args: {:?}", cli);
 
     info!("Building unit converter object");
     let mut converter = UnitConverterBuilder::new()
