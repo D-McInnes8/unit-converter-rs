@@ -1,7 +1,3 @@
-use unitconvert::persistence::in_memory::InMemoryConversionStore;
-use unitconvert::units::{TemperatureUnit, Unit};
-use unitconvert::UnitConverter;
-
 /*#[test]
 pub fn no_default_conversions() {
     let mut converter = UnitConverter::new();
