@@ -1,7 +1,8 @@
 use core::fmt;
+use std::collections::HashSet;
 use std::error::Error;
 
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use toml::{Table, Value};
 
 use self::graph::Graph;
@@ -16,7 +17,7 @@ pub trait ConversionStore {
 }
 
 pub struct UnitConverter {
-    graph: Graph<String, f64>,
+    graph: Vec<Graph<String, f64>>,
     abbreviations: Vec<UnitAbbreviation>,
 }
 
@@ -33,7 +34,10 @@ impl UnitConverter {
         UnitConverterBuilder::new()
     }
 
-    pub fn new(graph: Graph<String, f64>, abbreviations: Vec<UnitAbbreviation>) -> UnitConverter {
+    pub fn new(
+        graph: Vec<Graph<String, f64>>,
+        abbreviations: Vec<UnitAbbreviation>,
+    ) -> UnitConverter {
         UnitConverter {
             graph: graph,
             abbreviations: abbreviations,
@@ -45,6 +49,7 @@ impl UnitConverter {
             Ok(conversion) => {
                 info!("Parsed {:?}", conversion);
                 return self.convert_from_definition(
+                    &conversion.unit_type,
                     &conversion.from,
                     &conversion.to,
                     conversion.value,
@@ -58,28 +63,46 @@ impl UnitConverter {
 
     pub fn convert_from_definition(
         &mut self,
+        unit_type: &str,
         from: &str,
         to: &str,
         value: f64,
     ) -> Result<f64, ConversionError> {
-        let n0 = self.graph.get_node_index(from.to_string()).unwrap();
-        let n1 = self.graph.get_node_index(to.to_string()).unwrap();
-        let shortest_path = self.graph.shortest_path(n0, n1);
+        if let Some(graph) = self.get_graph_internal(unit_type) {
+            let n0 = graph.get_node_index(from.to_string()).unwrap();
+            let n1 = graph.get_node_index(to.to_string()).unwrap();
+            let shortest_path = graph.shortest_path(n0, n1);
 
-        let mut return_value = value;
-        for (unit, conversion) in shortest_path {
-            info!(
-                "Converting value to {}. Expresion is {} *= {}",
-                unit, return_value, conversion
-            );
-            return_value *= conversion;
+            let mut return_value = value;
+            for (unit, conversion) in shortest_path {
+                info!(
+                    "Converting value to {}. Expresion is {} *= {}",
+                    unit, return_value, conversion
+                );
+                return_value *= conversion;
+            }
+
+            return Ok(return_value);
         }
 
-        Ok(return_value)
+        error!("Unable to get internal graph for unit type {}", unit_type);
+        Err(ConversionError::new(
+            "Unable to get internal graph for unit type",
+        ))
+    }
+
+    fn get_graph_internal(&self, category: &str) -> Option<&Graph<String, f64>> {
+        for graph in &self.graph {
+            if graph.id == category {
+                return Some(&graph);
+            }
+        }
+        None
     }
 }
 
 pub struct UnitConverterBuilder {
+    unit_types: HashSet<String>,
     conversions: Vec<UnitConversion>,
     abbreviations: Vec<UnitAbbreviation>,
     include_reversed_values: bool,
@@ -89,6 +112,7 @@ pub struct UnitConverterBuilder {
 impl UnitConverterBuilder {
     pub fn new() -> UnitConverterBuilder {
         UnitConverterBuilder {
+            unit_types: HashSet::new(),
             conversions: vec![],
             abbreviations: vec![],
             include_reversed_values: false,
@@ -119,9 +143,8 @@ impl UnitConverterBuilder {
             .expect("Unable to load unit abbreviations from toml file.");
         let config = contents.parse::<Table>().unwrap();
 
+        info!("Loading unit abbreviations");
         for (category, units_table) in config {
-            //if category == "abbreviations" {
-            info!("Loading unit abbreviations");
             if let Value::Table(units) = units_table {
                 for (unit, abbreviations_array) in &units {
                     debug!(
@@ -142,7 +165,6 @@ impl UnitConverterBuilder {
                     }
                 }
             }
-            //}
         }
 
         self
@@ -155,6 +177,7 @@ impl UnitConverterBuilder {
         let initial_count = self.conversions.len();
 
         for (category, list) in config {
+            self.unit_types.insert(category.clone());
             if let Value::Table(units) = list {
                 for (unit_from, conversions) in units {
                     if let Value::Table(b) = conversions {
@@ -231,33 +254,38 @@ impl UnitConverterBuilder {
     }
 
     pub fn build(self) -> UnitConverter {
-        let mut graph = Graph::new("Length".to_string());
+        let mut graphs = vec![];
 
-        info!(
-            "Populating graph with {} default unit conversions",
-            &self.conversions.len()
-        );
-        for conversion in &self.conversions {
-            trace!(
-                "{} -> {}: {}",
-                &conversion.from,
-                &conversion.to,
-                &conversion.value
-            );
+        for unit_type in &self.unit_types {
+            let mut graph = Graph::new(unit_type.to_string());
+            let mut count = 0;
+
+            for conversion in &self.conversions {
+                if conversion.unit_type != *unit_type {
+                    continue;
+                }
+
+                debug!(
+                    "Adding edge to '{}' graph for default conversion {} -> {} (x *= {})",
+                    unit_type, &conversion.from, &conversion.to, &conversion.value
+                );
+                let n0 = graph.add_node(conversion.from.clone());
+                let n1 = graph.add_node(conversion.to.clone());
+                _ = graph.add_edge(n0, n1, conversion.value);
+                count += 1;
+            }
             info!(
-                "Adding edge to graph for default conversion {} -> {} (x *= {})",
-                &conversion.from, &conversion.to, &conversion.value
+                "Populated graph for type {} with {} default conversions",
+                &unit_type, count
             );
-            let n0 = graph.add_node(conversion.from.clone());
-            let n1 = graph.add_node(conversion.to.clone());
-            _ = graph.add_edge(n0, n1, conversion.value);
+            graphs.push(graph);
         }
 
         info!(
-            "Finished building unit converter object. Object contains abbreviations for {} units",
-            &self.abbreviations.len()
+            "Finished building unit converter object. Contains graphs for {} unit type(s) and definitions for {} unit(s)",
+            graphs.len(), &self.abbreviations.len()
         );
-        UnitConverter::new(graph, self.abbreviations)
+        UnitConverter::new(graphs, self.abbreviations)
     }
 }
 

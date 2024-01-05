@@ -1,3 +1,6 @@
 [Length]
 Meters = { Kilometers = 0.001, Centermetres = 100 }
 Miles = { Meters = 1609 }
+
+[Weight]
+Kilograms = { Grams = 1000 }

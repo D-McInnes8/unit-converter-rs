@@ -3,3 +3,7 @@ Centermeters = [ 'cm' ]
 Kilometers = [ 'km', 'k' ]
 Meters = [ 'm' ]
 Miles = [ 'mi']
+
+[Weight]
+Kilograms = [ 'kg' ]
+Grams = [ 'g' ]

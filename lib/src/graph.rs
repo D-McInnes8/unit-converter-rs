@@ -20,7 +20,7 @@ pub struct Graph<N, E>
 where
     N: PartialEq + Debug,
 {
-    id: String,
+    pub id: String,
     nodes: Vec<NodeData<N>>,
     edges: Vec<EdgeData<E>>,
 }
