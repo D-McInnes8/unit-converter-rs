@@ -94,14 +94,14 @@ fn parse_unit(
 ) -> Result<(String, String), ConversionError> {
     let input_lc = input.to_lowercase();
     for unit in units {
-        if unit.abbrev == input_lc {
+        if unit.abbrev.to_lowercase() == input_lc {
             return Ok((unit.unit_type.to_string(), unit.unit.to_string()));
         }
     }
     error!("Error parsing {} into a valid unit", input);
     Err(ConversionError::new(&format!(
         "Unable to parse {} into a valid unit",
-        input
+        input_lc
     )))
 }
 

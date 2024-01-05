@@ -77,6 +77,20 @@ impl UnitConverterBuilder {
         self
     }
 
+    pub fn add_unit_definition(
+        mut self,
+        unit_type: &str,
+        name: &str,
+        abbreviation: &str,
+    ) -> UnitConverterBuilder {
+        self.abbreviations.push(UnitAbbreviation {
+            unit: name.to_string(),
+            abbrev: abbreviation.to_string(),
+            unit_type: unit_type.to_string(),
+        });
+        self
+    }
+
     pub fn add_default_conversions_toml(mut self, file_path: &str) -> UnitConverterBuilder {
         let contents =
             std::fs::read_to_string(file_path).expect("Unable to load Toml base conversions.");
@@ -140,6 +154,7 @@ impl UnitConverterBuilder {
         to: &str,
         value: f64,
     ) -> UnitConverterBuilder {
+        self.unit_types.insert(unit_type.to_string());
         self.conversions.push(UnitConversion {
             value: value,
             from: from.to_string(),
