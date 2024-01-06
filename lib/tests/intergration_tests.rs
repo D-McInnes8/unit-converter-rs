@@ -1,3 +1,14 @@
+use self::common::setup;
+
+mod common;
+
+#[test]
+pub fn kilometers_to_meters() {
+    let mut converter = setup();
+    let actual = converter.convert_from_expression("2k -> m");
+    assert_eq!(actual.ok(), Some(2000.0))
+}
+
 /*#[test]
 pub fn no_default_conversions() {
     let mut converter = UnitConverter::new();
