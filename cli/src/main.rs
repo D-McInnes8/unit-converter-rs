@@ -1,7 +1,7 @@
 use std::{io, process};
 
 use clap::Parser;
-use console::style;
+use console::{style, Color};
 use dialoguer::Input;
 use log::{debug, info};
 use unitconvert::converter::builder::UnitConverterBuilder;
@@ -75,7 +75,11 @@ fn process_cmd(converter: &mut UnitConverter, cmd: &str) {
             Ok(result) => {
                 println!("{}", style(result).fg(console::Color::White).bold())
             }
-            Err(err) => eprintln!("{}", err),
+            Err(err) => eprintln!(
+                "{} {}",
+                style(format!("{: <5}", "ERROR")).fg(Color::Red).bold(),
+                err
+            ),
         }
     }
 }

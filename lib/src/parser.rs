@@ -1,4 +1,6 @@
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
+use nom::error::{Error, ErrorKind};
+use nom::Err;
 use nom::{
     branch::alt, bytes::complete::tag, character::complete::alpha1, error::context,
     number::complete::double, sequence::tuple, IResult,
@@ -60,10 +62,9 @@ pub fn parse_conversion(
             });
         }
         Err(err) => {
-            //eprintln!("Parse Error: {}", err);
             error!("Error parsing expression {}", input);
             error!("{}", err);
-            return Err(ConversionError::new("Error parsing expression"));
+            return Err(ConversionError::new(construct_error_message(&err).as_str()));
         }
     }
 }
@@ -90,11 +91,28 @@ fn parse_unit(
             return Ok((unit.unit_type.to_string(), unit.unit.to_string()));
         }
     }
-    error!("Error parsing {} into a valid unit", input);
+    warn!("Error parsing {} into a valid unit", input);
     Err(ConversionError::new(&format!(
-        "Unable to parse {} into a valid unit",
+        "'{}' is not a valid unit",
         input_lc
     )))
+}
+
+fn construct_error_message(err: &Err<Error<&str>>) -> String {
+    fn format_error_message(code: ErrorKind) -> String {
+        match code {
+            ErrorKind::Tag => String::from("Expression is not using a valid structure."),
+            ErrorKind::Float => String::from("Unable to parse a value to convert. Please ensure that the given value is a valid number."),
+            ErrorKind::Alpha => String::from("Unable to parse unit(s)."),
+            _ => String::from("Unknown error occurred parsing expression."),
+        }
+    }
+
+    match err {
+        Err::Error(e) => format_error_message(e.code),
+        Err::Failure(f) => format_error_message(f.code),
+        _ => String::from("Unknown error occurred parsing expression."),
+    }
 }
 
 #[cfg(test)]

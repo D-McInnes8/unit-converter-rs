@@ -8,17 +8,19 @@ pub struct ConversionError {
 }
 
 impl ConversionError {
-    pub fn default() -> ConversionError {
-        ConversionError {
-            source: None,
-            message: None,
-        }
-    }
-
     pub fn new(message: &str) -> ConversionError {
         ConversionError {
             source: None,
             message: Some(message.to_string()),
+        }
+    }
+}
+
+impl Default for ConversionError {
+    fn default() -> Self {
+        ConversionError {
+            source: None,
+            message: None,
         }
     }
 }
@@ -31,7 +33,7 @@ impl fmt::Display for ConversionError {
 
         let error_message = match &self.message {
             Some(err) => err,
-            None => "Error executing conversion",
+            None => "An unknown error has occurred",
         };
         write!(f, "{}", error_message)
     }
