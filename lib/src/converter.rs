@@ -84,6 +84,10 @@ impl UnitConverter {
         ))
     }
 
+    pub fn units(&self) -> &Vec<UnitAbbreviation> {
+        &self.abbreviations
+    }
+
     fn get_graph_internal(&self, category: &str) -> Option<&Graph<String, f64>> {
         for graph in &self.graph {
             if graph.id == category {

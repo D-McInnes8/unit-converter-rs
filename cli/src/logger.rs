@@ -13,7 +13,7 @@ impl ConsoleLogger {
             Some(LogLevel::Debug) => log::LevelFilter::Debug,
             Some(LogLevel::Info) => log::LevelFilter::Info,
             Some(LogLevel::Warning) => log::LevelFilter::Warn,
-            None => log::LevelFilter::Error,
+            None => log::LevelFilter::Info,
         };
 
         _ = log::set_logger(&LOGGER).map(|()| log::set_max_level(level_filter));
