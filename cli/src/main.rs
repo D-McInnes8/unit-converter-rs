@@ -90,7 +90,12 @@ fn display_converter_units(converter: &UnitConverter) {
     let units = converter.units();
     println!("{: <20} {}", style("Unit").bold(), style("Type").bold());
     for unit in units {
-        println!("{: <20} {}", style(&unit.unit).italic(), unit.unit_type);
+        println!(
+            "{: <20} {} {}",
+            style(&unit.unit).italic(),
+            unit.unit_type,
+            unit.abbrev
+        );
     }
 }
 
