@@ -148,7 +148,7 @@ where
         let mut queue = VecDeque::new();
         let mut visited = vec![false; self.nodes.len()];
         let mut dist = vec![usize::MAX; self.nodes.len()];
-        let mut pred = vec![None; self.nodes.len()];
+        let mut path = vec![None; self.nodes.len()];
 
         visited[source] = true;
         dist[source] = 0;
@@ -160,9 +160,9 @@ where
                 if visited[edge_data.target] == false {
                     visited[edge_data.target] = true;
                     dist[edge_data.target] = dist[node] + 1;
-                    pred[edge_data.target] = Some(node);
-                    queue.push_back(edge_data.target);
+                    path[edge_data.target] = Some((node, edge_data.target, &edge_data.weight));
 
+                    queue.push_back(edge_data.target);
                     if edge_data.target == target {
                         break;
                     }
@@ -170,28 +170,14 @@ where
             }
         }
 
-        debug!("{:?}", pred);
-
-        let mut results = vec![];
-        results.push(target);
         let mut i = target;
-        //while pred[i] != None {
-        while let Some(x) = pred[i] {
-            results.push(x);
-            i = x;
+        let mut result = vec![];
+        while let Some((source_node, target_node, weight)) = path[i] {
+            result.push((&self.nodes[target_node].value, weight));
+            i = source_node;
         }
-
-        results.reverse();
-
-        let mut results2 = vec![];
-
-        for i in 0..results.len() - 1 {
-            let node_data = &self.nodes[results[i + 1]];
-            let node_value = &node_data.value;
-            let edge_weight = self.get_edge_weight(results[i], results[i + 1]).unwrap();
-            results2.push((node_value, edge_weight));
-        }
-        results2
+        result.reverse();
+        result
     }
 
     pub fn shortest_path2(&self, source: NodeIndex, target: NodeIndex) -> Vec<(&N, &E)> {
