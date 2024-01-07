@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, BinaryHeap, VecDeque};
+use std::collections::VecDeque;
 use std::fmt::Debug;
 
-use log::{debug, info, warn};
+use log::{debug, warn};
 
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;

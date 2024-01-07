@@ -85,16 +85,15 @@ fn parse_unit(
     units: &Vec<UnitAbbreviation>,
     input: &str,
 ) -> Result<(String, String), ConversionError> {
-    let input_lc = input.to_lowercase();
     for unit in units {
-        if unit.abbrev.to_lowercase() == input_lc {
+        if unit.abbrev == input {
             return Ok((unit.unit_type.to_string(), unit.unit.to_string()));
         }
     }
     warn!("Error parsing {} into a valid unit", input);
     Err(ConversionError::new(&format!(
         "'{}' is not a valid unit",
-        input_lc
+        input
     )))
 }
 
@@ -131,6 +130,16 @@ mod tests {
                 abbrev: "F".to_string(),
                 unit_type: "Temperature".to_string(),
             },
+            UnitAbbreviation {
+                unit: String::from("Millimeter"),
+                abbrev: String::from("mm"),
+                unit_type: String::from("Length"),
+            },
+            UnitAbbreviation {
+                unit: String::from("Megameter"),
+                abbrev: String::from("Mm"),
+                unit_type: String::from("Length"),
+            },
         ]
     }
 
@@ -165,5 +174,20 @@ mod tests {
 
         let actual = parse_conversion(&abbreviations, &mut input);
         assert!(actual.is_err());
+    }
+
+    #[test]
+    fn same_characters_different_case() {
+        let mut input = "1Mm -> mm";
+        let abbreviations = construct_unit_abbreviations();
+
+        let expected = UnitConversion {
+            value: 1.0,
+            from: String::from("Megameter"),
+            to: String::from("Millimeter"),
+            unit_type: String::from("Length"),
+        };
+        let actual = parse_conversion(&abbreviations, &mut input).unwrap();
+        assert_eq!(expected, actual)
     }
 }
