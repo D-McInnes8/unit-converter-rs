@@ -1,16 +1,18 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BinaryHeap, VecDeque};
 use std::fmt::Debug;
 
-use log::{debug, warn};
+use log::{debug, info, warn};
 
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
+#[derive(Debug)]
 pub struct NodeData<T> {
     value: T,
     edges: Vec<EdgeIndex>,
 }
 
+#[derive(Debug)]
 pub struct EdgeData<T> {
     target: NodeIndex,
     weight: T,
@@ -34,7 +36,7 @@ pub enum GraphOperationError {
 impl<N, E> Graph<N, E>
 where
     N: Clone + PartialEq + Debug,
-    E: Copy,
+    E: Copy + Debug,
 {
     pub fn default() -> Graph<N, E> {
         Graph {
@@ -57,11 +59,11 @@ where
         for node in &self.nodes {
             if node.value == value {
                 //return Err(GraphOperationError::NodeAlreadyExistsForValue);
-                debug!(
+                /*debug!(
                     "Attempted to insert a node with a value {:?} that already exists, returning existing ({})",
                     &value,
                     existing
-                );
+                );*/
                 return existing;
             }
             existing += 1;
@@ -114,70 +116,68 @@ where
     }
 
     pub fn get_edge_weight(&self, source: NodeIndex, target: NodeIndex) -> Option<&E> {
+        debug!(
+            "Getting edge weight between nodes {} [{:?}] and {} [{:?}]",
+            source, self.nodes[source].value, target, self.nodes[target].value
+        );
         if source >= self.nodes.len() || target >= self.nodes.len() {
+            warn!("Attempting to get the edge weight for a node that is out of bounds");
             return None;
         }
 
         for edge in &self.nodes[source].edges {
             let edge_data = &self.edges[*edge];
+            /*debug!(
+                "{:?} -> {:?} = {:?}",
+                self.nodes[source].value, self.nodes[edge_data.target].value, edge_data.weight
+            );*/
             if edge_data.target == target {
+                //debug!("Found edge weight, returning {:?}", &edge_data.weight);
                 return Some(&edge_data.weight);
             }
         }
 
+        warn!(
+            "Unable to find edge weight between nodes {} and {}",
+            source, target
+        );
         return None;
     }
 
     pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(&N, &E)> {
-        //let mut results = Vec::<(i32, i32)>::new();
-        let mut distance = vec![usize::MAX; self.nodes.len()];
-        let mut priority = BTreeMap::new();
-        //let mut heap = BinaryHeap::new();
-        //let mut prev = vec![None; self.nodes.len()];
-        let mut prev = vec![source];
+        let mut queue = VecDeque::new();
+        let mut visited = vec![false; self.nodes.len()];
+        let mut dist = vec![usize::MAX; self.nodes.len()];
+        let mut path = vec![None; self.nodes.len()];
 
-        distance[source] = 0;
-        priority.insert(source, 0);
+        visited[source] = true;
+        dist[source] = 0;
+        queue.push_back(source);
 
-        while let Some((node_index, weight)) = priority.pop_first() {
-            if node_index == target {
-                break;
-            }
-
-            if weight > distance[node_index] {
-                continue;
-            }
-
-            for edge in &self.nodes[node_index].edges {
+        while let Some(node) = queue.pop_front() {
+            for edge in &self.nodes[node].edges {
                 let edge_data = &self.edges[*edge];
-                //let alt = weight + edge_data.weight as usize;
-                let alt = weight + 1;
+                if visited[edge_data.target] == false {
+                    visited[edge_data.target] = true;
+                    dist[edge_data.target] = dist[node] + 1;
+                    path[edge_data.target] = Some((node, edge_data.target, &edge_data.weight));
 
-                if alt < distance[edge_data.target] {
-                    priority.insert(edge_data.target, alt);
-                    distance[edge_data.target] = alt;
-
-                    if !prev.contains(&node_index) {
-                        prev.push(node_index);
+                    queue.push_back(edge_data.target);
+                    if edge_data.target == target {
+                        break;
                     }
                 }
             }
         }
-        prev.push(target);
-        debug!(
-            "Djikstra shortest path calculated distances: {:?}",
-            distance
-        );
 
-        let mut results2 = Vec::new();
-        for i in 0..prev.len() - 1 {
-            let node_data = &self.nodes[prev[i + 1]];
-            let node_value = &node_data.value;
-            let edge_weight = self.get_edge_weight(prev[i], prev[i + 1]).unwrap();
-            results2.push((node_value, edge_weight));
+        let mut i = target;
+        let mut result = vec![];
+        while let Some((source_node, target_node, weight)) = path[i] {
+            result.push((&self.nodes[target_node].value, weight));
+            i = source_node;
         }
-
-        return results2;
+        result.reverse();
+        result
     }
 }
 
