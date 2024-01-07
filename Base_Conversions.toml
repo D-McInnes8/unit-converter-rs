@@ -1,6 +1,8 @@
 [Length]
-Meters = { Kilometers = 0.001, Centermetres = 100 }
-Miles = { Meters = 1609 }
+Kilometers = { Meters = 1000 }
+Meters = { Centermetres = 100, Inches = 39.3701, NauticalMiles = 1852, Fathom = 1.852 }
+Miles = { Meters = 1609.34 }
+Leagues = { Miles = 3 }
 
 [Weight]
 Kilograms = { Grams = 1000 }
