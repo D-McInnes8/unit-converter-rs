@@ -1,7 +1,6 @@
-use log::{error, info};
-
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
+use log::{error, info};
 
 use self::builder::UnitConverterBuilder;
 use self::error::ConversionError;

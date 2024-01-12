@@ -12,7 +12,8 @@ mod common;
 #[test_case("3.27km -> nm",      3270000000000.0      ; "kilometers to nanometers")]
 #[test_case("453406564nm -> km", 0.000453406564       ; "nanometers to kilometers")]
 #[test_case("87pm -> nm",        0.087000000000000001 ; "picometers to nanometers")]
-pub fn valid_conversion(input: &str, expected: f64) {
+#[test_case("1ly -> km",         9460730472580.0      ; "light-years to kilometers")]
+pub fn length_conversion(input: &str, expected: f64) {
     let mut converter = setup();
     let actual = converter.convert_from_expression(input);
 
@@ -20,16 +21,20 @@ pub fn valid_conversion(input: &str, expected: f64) {
     assert_eq!(expected, actual.unwrap());
 }
 
-/*#[test]
-pub fn celsius_to_fahrenheit() {
-    let mut converter = UnitConverter::new();
-    let actual = converter.convert_from_expression("20C -> F");
-    assert_eq!(actual.ok(), Some(68.0));
+pub fn length_conversion_cosmic(input: &str, expected: f64) {
+    let mut converter = setup();
+    let actual = converter.convert_from_expression(input);
+
+    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
+    assert_eq!(expected, actual.unwrap());
 }
 
-#[test]
-pub fn fahrenheit_to_celsius() {
-    let mut converter = UnitConverter::new();
-    let actual = converter.convert_from_expression("100F -> C");
-    assert_eq!(actual.ok(), Some(37.7778));
+/*#[test_case("20C -> F",          68.0                 ; "celsius_to_fahrenheit")]
+#[test_case("100F -> C",         37.7778              ; "fahrenheit_to_celsius")]
+pub fn temperature_conversion(input: &str, expected: f64) {
+    let mut converter = setup();
+    let actual = converter.convert_from_expression(input);
+
+    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
+    assert_eq!(expected, actual.unwrap());
 }*/
