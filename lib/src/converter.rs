@@ -1,6 +1,6 @@
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
-use log::{debug, error, info};
+use log::{error, info, warn};
 
 use self::builder::UnitConverterBuilder;
 use self::error::ConversionError;
@@ -63,6 +63,14 @@ impl UnitConverter {
         to: &str,
         value: f64,
     ) -> Result<f64, ConversionError> {
+        fn calculate_conversion_multiplier(conversions: &Vec<(&String, &f64)>) -> f64 {
+            let mut result = 1.0;
+            for (_, conversion) in conversions {
+                result *= *conversion;
+            }
+            result
+        }
+
         if let Some(graph_index) = self.get_graph_index(unit_type) {
             let n0 = self.graph[graph_index]
                 .get_node_index(from.to_string())
@@ -78,32 +86,27 @@ impl UnitConverter {
 
             let shortest_path = self.graph[graph_index].shortest_path(n0, n1);
             info!(
-                "Converting from {} to {} will require {} operations",
+                "Converting from {} to {} will require {} operation(s)",
                 from,
                 to,
                 shortest_path.len()
             );
 
-            let mut return_value = value;
-            for (unit, conversion) in &shortest_path {
-                debug!(
-                    "Converting value to {} ({} *= {})",
-                    unit, return_value, conversion
-                );
-                return_value *= *conversion;
-            }
+            let multiplier = calculate_conversion_multiplier(&shortest_path);
+            let return_value = value * multiplier;
 
-            if shortest_path.len() > 1 {
-                let mut conversion_value = 1.0;
-                for (_, conversion) in &shortest_path {
-                    conversion_value *= *conversion;
-                }
-
+            if self.cache && shortest_path.len() > 1 {
                 info!(
-                    "Caching conversion between {} and {} with {}",
-                    from, to, conversion_value
+                    "Caching conversion between {} and {} using multiplier {}",
+                    from, to, multiplier
                 );
-                _ = self.graph[graph_index].add_edge(n0, n1, conversion_value);
+                let cache_result = self.graph[graph_index].add_edge(n0, n1, multiplier);
+                if cache_result.is_err() {
+                    warn!(
+                        "Unable to add edge to graph between nodes {} and {}",
+                        from, to
+                    );
+                }
             }
 
             return Ok(return_value);
