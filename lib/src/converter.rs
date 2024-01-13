@@ -11,6 +11,7 @@ pub mod error;
 pub struct UnitConverter {
     graph: Vec<Graph<String, f64>>,
     abbreviations: Vec<UnitAbbreviation>,
+    cache: bool,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,10 +30,12 @@ impl UnitConverter {
     pub fn new(
         graph: Vec<Graph<String, f64>>,
         abbreviations: Vec<UnitAbbreviation>,
+        cache: bool,
     ) -> UnitConverter {
         UnitConverter {
             graph: graph,
             abbreviations: abbreviations,
+            cache: cache,
         }
     }
 
