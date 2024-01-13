@@ -15,18 +15,14 @@ mod common;
 #[test_case("1ly -> km",         9460730472580.0      ; "light-years to kilometers")]
 pub fn length_conversion(input: &str, expected: f64) {
     let mut converter = setup();
-    let actual = converter.convert_from_expression(input);
 
-    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
-    assert_eq!(expected, actual.unwrap());
-}
+    // Run each test case twice to ensure that any caching doesn't alter the result.
+    for _ in 0..2 {
+        let actual = converter.convert_from_expression(input);
 
-pub fn length_conversion_cosmic(input: &str, expected: f64) {
-    let mut converter = setup();
-    let actual = converter.convert_from_expression(input);
-
-    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
-    assert_eq!(expected, actual.unwrap());
+        assert!(actual.is_ok(), "Returned error {:?}", actual.err());
+        assert_eq!(expected, actual.unwrap());
+    }
 }
 
 /*#[test_case("20C -> F",          68.0                 ; "celsius_to_fahrenheit")]
