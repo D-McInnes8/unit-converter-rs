@@ -13,6 +13,7 @@ pub struct UnitConverterBuilder {
     conversions: Vec<UnitConversion>,
     abbreviations: Vec<UnitAbbreviation>,
     auto_reverse: bool,
+    cache: bool,
     show_debug_messages: bool,
 }
 
@@ -23,12 +24,18 @@ impl UnitConverterBuilder {
             conversions: vec![],
             abbreviations: vec![],
             auto_reverse: false,
+            cache: true,
             show_debug_messages: false,
         }
     }
 
     pub fn auto_reverse_conversions(mut self, include: bool) -> UnitConverterBuilder {
         self.auto_reverse = include;
+        self
+    }
+
+    pub fn cache_multiple_conversions(mut self, cache: bool) -> UnitConverterBuilder {
+        self.cache = cache;
         self
     }
 
@@ -199,6 +206,6 @@ impl UnitConverterBuilder {
             "Finished building unit converter object. Contains graphs for {} unit type(s) and definitions for {} unit(s)",
             graphs.len(), &self.abbreviations.len()
         );
-        UnitConverter::new(graphs, self.abbreviations)
+        UnitConverter::new(graphs, self.abbreviations, self.cache)
     }
 }

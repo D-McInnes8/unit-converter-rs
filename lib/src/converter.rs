@@ -1,6 +1,6 @@
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
-use log::{error, info};
+use log::{error, info, warn};
 
 use self::builder::UnitConverterBuilder;
 use self::error::ConversionError;
@@ -11,6 +11,7 @@ pub mod error;
 pub struct UnitConverter {
     graph: Vec<Graph<String, f64>>,
     abbreviations: Vec<UnitAbbreviation>,
+    cache: bool,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -29,10 +30,12 @@ impl UnitConverter {
     pub fn new(
         graph: Vec<Graph<String, f64>>,
         abbreviations: Vec<UnitAbbreviation>,
+        cache: bool,
     ) -> UnitConverter {
         UnitConverter {
             graph: graph,
             abbreviations: abbreviations,
+            cache: cache,
         }
     }
 
@@ -60,18 +63,50 @@ impl UnitConverter {
         to: &str,
         value: f64,
     ) -> Result<f64, ConversionError> {
-        if let Some(graph) = self.get_graph_internal(unit_type) {
-            let n0 = graph.get_node_index(from.to_string()).unwrap();
-            let n1 = graph.get_node_index(to.to_string()).unwrap();
-            let shortest_path = graph.shortest_path(n0, n1);
+        fn calculate_conversion_multiplier(conversions: &Vec<(&String, &f64)>) -> f64 {
+            let mut result = 1.0;
+            for (_, conversion) in conversions {
+                result *= *conversion;
+            }
+            result
+        }
 
-            let mut return_value = value;
-            for (unit, conversion) in shortest_path {
+        if let Some(graph_index) = self.get_graph_index(unit_type) {
+            let n0 = self.graph[graph_index]
+                .get_node_index(from.to_string())
+                .ok_or(ConversionError::new(
+                    format!("Unable to find conversion for unit {}", from).as_str(),
+                ))?;
+
+            let n1 = self.graph[graph_index]
+                .get_node_index(to.to_string())
+                .ok_or(ConversionError::new(
+                    format!("Unable to find conversion for unit {}", to).as_str(),
+                ))?;
+
+            let shortest_path = self.graph[graph_index].shortest_path(n0, n1);
+            info!(
+                "Converting from {} to {} will require {} operation(s)",
+                from,
+                to,
+                shortest_path.len()
+            );
+
+            let multiplier = calculate_conversion_multiplier(&shortest_path);
+            let return_value = value * multiplier;
+
+            if self.cache && shortest_path.len() > 1 {
                 info!(
-                    "Converting value to {}. Expresion is {} *= {}",
-                    unit, return_value, conversion
+                    "Caching conversion between {} and {} using multiplier {}",
+                    from, to, multiplier
                 );
-                return_value *= conversion;
+                let cache_result = self.graph[graph_index].add_edge(n0, n1, multiplier);
+                if cache_result.is_err() {
+                    warn!(
+                        "Unable to add edge to graph between nodes {} and {}",
+                        from, to
+                    );
+                }
             }
 
             return Ok(return_value);
@@ -87,11 +122,13 @@ impl UnitConverter {
         &self.abbreviations
     }
 
-    fn get_graph_internal(&self, category: &str) -> Option<&Graph<String, f64>> {
+    fn get_graph_index(&self, category: &str) -> Option<usize> {
+        let mut i = 0;
         for graph in &self.graph {
             if graph.id == category {
-                return Some(&graph);
+                return Some(i);
             }
+            i += 1;
         }
         None
     }
