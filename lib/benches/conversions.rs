@@ -33,9 +33,18 @@ fn convert_meters_to_kilometers(c: &mut Criterion) {
     });
 }
 
+fn convert_lightyears_to_nanometers(c: &mut Criterion) {
+    let mut converter = setup();
+
+    c.bench_function("lightyears to nanometers", |b| {
+        b.iter(|| _ = converter.convert_from_expression("3ly -> nm"))
+    });
+}
+
 criterion_group!(
     benches,
     convert_kilometers_to_nautical_miles,
-    convert_meters_to_kilometers
+    convert_meters_to_kilometers,
+    convert_lightyears_to_nanometers
 );
 criterion_main!(benches);
