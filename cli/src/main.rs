@@ -22,41 +22,43 @@ fn main() {
     debug!("Cli args: {:?}", cli);
 
     info!("Building unit converter object");
-    let mut converter = UnitConverterBuilder::new()
+    let builder_result = UnitConverterBuilder::new()
         .show_debug_messages(true)
         .auto_reverse_conversions(true)
         .add_unit_definitions_toml("Units.toml")
         .add_default_conversions_toml("Base_Conversions.toml")
         .build();
 
-    if cli.interactive == true {
-        let mut history = InputHistory::default();
-        let theme = generate_input_theme();
-        loop {
-            if let Ok(cmd) = Input::<String>::with_theme(&theme)
-                //.with_prompt(" > ")
-                .history_with(&mut history)
-                .interact_text()
-            {
-                process_cmd(&mut converter, &cmd);
-            }
-        }
-    } else {
-        info!("Waiting for user input");
-        loop {
-            let mut input = String::new();
-            match io::stdin().read_line(&mut input) {
-                Ok(len) => {
-                    if len == 0 {
-                        return;
-                    } else {
-                        let command = remove_new_line_characters(&input);
-                        process_cmd(&mut converter, command);
-                    }
+    if let Ok(mut converter) = builder_result {
+        if cli.interactive == true {
+            let mut history = InputHistory::default();
+            let theme = generate_input_theme();
+            loop {
+                if let Ok(cmd) = Input::<String>::with_theme(&theme)
+                    //.with_prompt(" > ")
+                    .history_with(&mut history)
+                    .interact_text()
+                {
+                    process_cmd(&mut converter, &cmd);
                 }
-                Err(error) => {
-                    eprintln!("error: {}", error);
-                    return;
+            }
+        } else {
+            info!("Waiting for user input");
+            loop {
+                let mut input = String::new();
+                match io::stdin().read_line(&mut input) {
+                    Ok(len) => {
+                        if len == 0 {
+                            return;
+                        } else {
+                            let command = remove_new_line_characters(&input);
+                            process_cmd(&mut converter, command);
+                        }
+                    }
+                    Err(error) => {
+                        eprintln!("error: {}", error);
+                        return;
+                    }
                 }
             }
         }

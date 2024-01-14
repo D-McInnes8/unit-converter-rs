@@ -13,6 +13,7 @@ fn setup() -> UnitConverter {
         .add_unit_definitions_toml(unit_definitions_path)
         .add_default_conversions_toml(default_converions_path)
         .build()
+        .unwrap()
 }
 
 fn convert_kilometers_to_nautical_miles(c: &mut Criterion) {

@@ -6,6 +6,7 @@ use toml::{Table, Value};
 use crate::graph::Graph;
 use crate::parser::UnitAbbreviation;
 
+use super::error::ConversionError;
 use super::{UnitConversion, UnitConverter};
 
 pub struct UnitConverterBuilder {
@@ -174,7 +175,7 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn build(self) -> UnitConverter {
+    pub fn build(self) -> Result<UnitConverter, ConversionError> {
         let mut graphs = vec![];
 
         for unit_type in &self.unit_types {
@@ -206,6 +207,6 @@ impl UnitConverterBuilder {
             "Finished building unit converter object. Contains graphs for {} unit type(s) and definitions for {} unit(s)",
             graphs.len(), &self.abbreviations.len()
         );
-        UnitConverter::new(graphs, self.abbreviations, self.cache)
+        Ok(UnitConverter::new(graphs, self.abbreviations, self.cache))
     }
 }
