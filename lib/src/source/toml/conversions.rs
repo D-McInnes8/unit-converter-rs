@@ -2,6 +2,7 @@ use log::{debug, info};
 use toml::{Table, Value};
 
 use crate::converter::UnitConversion;
+use crate::source::toml::parse_helper::parse_table;
 use crate::source::BaseConversionSource;
 
 pub struct BaseConversionsSourceToml {
@@ -27,31 +28,27 @@ impl BaseConversionSource for BaseConversionsSourceToml {
         let config = contents.parse::<Table>()?;
 
         let mut result = vec![];
-        for (category, list) in config {
-            if let Value::Table(units) = list {
-                for (unit_from, conversions) in units {
-                    if let Value::Table(b) = conversions {
-                        for (unit_to, value) in b {
-                            debug!(
-                                "Imported Base Conversion: [{}] {} -> {}: {}",
-                                category, unit_from, unit_to, value
-                            );
+        for (category, units) in &config {
+            for (unit_from, conversions) in parse_table(&units)? {
+                for (unit_to, value) in parse_table(conversions)? {
+                    debug!(
+                        "Imported Base Conversion: [{}] {} -> {}: {}",
+                        category, unit_from, unit_to, value
+                    );
 
-                            let f_value = match value {
-                                Value::Float(f) => Some(f),
-                                Value::Integer(i) => Some(i as f64),
-                                _ => None,
-                            };
+                    let f_value = match value {
+                        Value::Float(f) => Some(*f),
+                        Value::Integer(i) => Some(*i as f64),
+                        _ => None,
+                    };
 
-                            if let Some(num) = f_value {
-                                result.push(UnitConversion {
-                                    value: num,
-                                    from: unit_from.to_string(),
-                                    to: unit_to.to_string(),
-                                    unit_type: category.to_string(),
-                                });
-                            }
-                        }
+                    if let Some(num) = f_value {
+                        result.push(UnitConversion {
+                            value: num,
+                            from: unit_from.to_owned(),
+                            to: unit_to.to_owned(),
+                            unit_type: category.to_owned(),
+                        });
                     }
                 }
             }

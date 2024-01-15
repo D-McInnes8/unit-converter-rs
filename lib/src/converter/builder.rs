@@ -67,9 +67,11 @@ impl UnitConverterBuilder {
 
     pub fn add_unit_deinitions_source(
         mut self,
+        //source: impl UnitDefitionSource,
         source: Box<dyn UnitDefitionSource>,
     ) -> UnitConverterBuilder {
         self.units.push(source);
+        //move || self.units.push(Box::new(source));
         self
     }
 

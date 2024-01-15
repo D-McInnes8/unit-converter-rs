@@ -1,11 +1,11 @@
 use std::io::Error;
 
 use log::{debug, info};
-use toml::map::Map;
 use toml::{Table, Value};
 
 use crate::converter::error::ConversionError;
 use crate::parser::UnitAbbreviation;
+use crate::source::toml::parse_helper::{parse_array, parse_table};
 use crate::source::UnitDefitionSource;
 
 pub struct UnitDefinitionSourceToml {
@@ -59,7 +59,7 @@ impl UnitDefitionSource for UnitDefinitionSourceToml {
     }
 }
 
-fn parse_table(value: &Value) -> Result<&Map<String, Value>, ConversionError> {
+/*fn parse_table(value: &Value) -> Result<&Map<String, Value>, ConversionError> {
     if let Value::Table(tbl) = value {
         return Ok(tbl);
     }
@@ -71,4 +71,4 @@ fn parse_array(value: &Value) -> Result<&Vec<Value>, ConversionError> {
         return Ok(vec);
     }
     Err(ConversionError::default())
-}
+}*/
