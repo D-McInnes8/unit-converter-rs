@@ -5,11 +5,15 @@ use toml::{Table, Value};
 
 use crate::graph::Graph;
 use crate::parser::UnitAbbreviation;
+use crate::source::{BaseConversionSource, UnitDefitionSource};
 
 use super::error::ConversionError;
 use super::{UnitConversion, UnitConverter};
 
 pub struct UnitConverterBuilder {
+    base_conversions: Vec<Box<dyn BaseConversionSource>>,
+    units: Vec<Box<dyn UnitDefitionSource>>,
+
     unit_types: HashSet<String>,
     conversions: Vec<UnitConversion>,
     abbreviations: Vec<UnitAbbreviation>,
@@ -18,9 +22,11 @@ pub struct UnitConverterBuilder {
     show_debug_messages: bool,
 }
 
-impl UnitConverterBuilder {
-    pub fn new() -> UnitConverterBuilder {
+impl Default for UnitConverterBuilder {
+    fn default() -> Self {
         UnitConverterBuilder {
+            base_conversions: vec![],
+            units: vec![],
             unit_types: HashSet::new(),
             conversions: vec![],
             abbreviations: vec![],
@@ -28,6 +34,12 @@ impl UnitConverterBuilder {
             cache: true,
             show_debug_messages: false,
         }
+    }
+}
+
+impl UnitConverterBuilder {
+    pub fn new() -> UnitConverterBuilder {
+        UnitConverterBuilder::default()
     }
 
     pub fn auto_reverse_conversions(mut self, include: bool) -> UnitConverterBuilder {
@@ -42,6 +54,22 @@ impl UnitConverterBuilder {
 
     pub fn show_debug_messages(mut self, show: bool) -> UnitConverterBuilder {
         self.show_debug_messages = show;
+        self
+    }
+
+    pub fn add_base_conversion_source(
+        mut self,
+        source: Box<dyn BaseConversionSource>,
+    ) -> UnitConverterBuilder {
+        self.base_conversions.push(source);
+        self
+    }
+
+    pub fn add_unit_deinitions_source(
+        mut self,
+        source: Box<dyn UnitDefitionSource>,
+    ) -> UnitConverterBuilder {
+        self.units.push(source);
         self
     }
 
@@ -147,7 +175,7 @@ impl UnitConverterBuilder {
         self
     }
 
-    pub fn add_conversion(
+    /*pub fn add_conversion(
         mut self,
         unit_type: &str,
         from: &str,
@@ -173,13 +201,17 @@ impl UnitConverterBuilder {
         }
 
         self
-    }
+    }*/
 
     pub fn build(self) -> Result<UnitConverter, ConversionError> {
-        let mut graphs = vec![];
+        // Load base base_conversions
+        let base = self.load_base_conversions();
+        let units = self.load_unit_definition();
 
+        // Populate graph
+        let mut graphs = vec![];
         for unit_type in &self.unit_types {
-            let mut graph = Graph::new(unit_type.to_string());
+            let mut graph = Graph::new(unit_type.to_owned());
             let mut count = 0;
 
             for conversion in &self.conversions {
@@ -194,6 +226,16 @@ impl UnitConverterBuilder {
                 let n0 = graph.add_node(conversion.from.clone());
                 let n1 = graph.add_node(conversion.to.clone());
                 _ = graph.add_edge(n0, n1, conversion.value);
+
+                if self.auto_reverse {
+                    let reversed = 1.0 / conversion.value;
+                    debug!(
+                        "Adding reversed edge to '{}' graph for {} -> {} (x *= {})",
+                        unit_type, &conversion.to, &conversion.from, reversed
+                    );
+                    _ = graph.add_edge(n1, n0, reversed);
+                }
+
                 count += 1;
             }
             info!(
@@ -209,4 +251,63 @@ impl UnitConverterBuilder {
         );
         Ok(UnitConverter::new(graphs, self.abbreviations, self.cache))
     }
+
+    fn load_base_conversions(&self) -> Result<Vec<UnitConversion>, ConversionError> {
+        let mut base_conv = vec![];
+        for source in &self.base_conversions {
+            let mut hello = source.load().map_or_else(
+                |e| {
+                    if source.optional() {
+                        return Ok(Vec::<UnitConversion>::new());
+                    }
+                    return Err(e);
+                },
+                |v| Ok(v),
+            )?;
+
+            base_conv.append(&mut hello);
+        }
+
+        Ok(base_conv)
+    }
+
+    fn load_unit_definition(&self) -> Result<Vec<UnitAbbreviation>, ConversionError> {
+        let mut units = vec![];
+        let mut units_uq = HashSet::new();
+        for source in &self.units {
+            let mut hello = source.load().map_or_else(
+                |e| {
+                    if source.optional() {
+                        return Ok(Vec::<UnitAbbreviation>::new());
+                    }
+                    return Err(e);
+                },
+                |v| Ok(v),
+            )?;
+            units.append(&mut hello);
+            for unit in hello {
+                units_uq.insert(unit.unit);
+            }
+        }
+
+        Ok(units)
+    }
+
+    /*pub fn test(self) -> Result<i64, ConversionError> {
+        let mut base_conv: Vec<UnitConversion> = vec![];
+        for source in self.base_conversions {
+            base_conv.append(&mut source.load()?);
+        }
+
+        let mut units: Vec<UnitAbbreviation> = vec![];
+        let mut uq_units: HashSet<i64> = HashSet::new();
+        for source in self.units {
+            let loaded = source.load()?;
+            for unit in &loaded {
+                uq_units.insert(*unit.abbrev);
+            }
+            units.append(&mut source.load()?);
+        }
+        Ok(0)
+    }*/
 }
