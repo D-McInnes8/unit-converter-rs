@@ -25,6 +25,15 @@ impl From<toml::de::Error> for ConversionError {
     }
 }
 
+impl UnitDefinitionSourceToml {
+    pub fn new(path: &str, optional: bool) -> UnitDefinitionSourceToml {
+        UnitDefinitionSourceToml {
+            path: path.to_owned(),
+            optional: optional,
+        }
+    }
+}
+
 impl UnitDefitionSource for UnitDefinitionSourceToml {
     fn load(&self) -> Result<Vec<crate::parser::UnitAbbreviation>, ConversionError> {
         info!("Loading unit abbreviations");

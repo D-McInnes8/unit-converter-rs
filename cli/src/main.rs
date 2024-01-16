@@ -5,9 +5,11 @@ use console::{style, Color};
 use dialoguer::Input;
 use log::{debug, info};
 use unitconvert::converter::builder::UnitConverterBuilder;
+use unitconvert::converter::error::ConversionError;
 use unitconvert::converter::UnitConverter;
 use unitconvert::source::toml::conversions::BaseConversionsSourceToml;
 use unitconvert::source::toml::units::UnitDefinitionSourceToml;
+use unitconvert::source::{BaseConversionSource, UnitDefitionSource};
 
 use crate::input::{generate_input_theme, InputHistory};
 use crate::options::CliOptions;
@@ -24,16 +26,16 @@ fn main() {
     debug!("Cli args: {:?}", cli);
 
     info!("Building unit converter object");
-    match UnitConverterBuilder::new()
-        .auto_reverse_conversions(true)
-        .add_base_conversion_source(Box::new(BaseConversionsSourceToml::new(
-            "Units.toml",
-            false,
-        )))
-        .add_unit_definitions_toml("Units.toml")
-        .add_default_conversions_toml("Base_Conversions.toml")
-        .build()
-    {
+    /*match UnitConverterBuilder::new()
+    .auto_reverse_conversions(true)
+    .add_base_conversion_source(Box::new(BaseConversionsSourceToml::new(
+        "Units.toml",
+        false,
+    )))
+    .add_unit_definitions_toml("Units.toml")
+    .add_default_conversions_toml("Base_Conversions.toml")
+    .build()*/
+    match build_unit_converter() {
         Ok(mut converter) => {
             if cli.interactive == true {
                 let mut history = InputHistory::default();
@@ -72,6 +74,18 @@ fn main() {
             eprintln!("error initializing: {}", error);
         }
     }
+}
+
+fn build_unit_converter() -> Result<UnitConverter, ConversionError> {
+    let conversions = BaseConversionsSourceToml::new("Base_Conversions.toml", false).load()?;
+    let units = UnitDefinitionSourceToml::new("Units.toml", false).load()?;
+
+    UnitConverterBuilder::new()
+        .reverse_base_conversions(true)
+        .cache_results(true)
+        .add_unit_definitions(units)
+        .add_base_conversions(conversions)
+        .build()
 }
 
 fn process_cmd(converter: &mut UnitConverter, cmd: &str) {

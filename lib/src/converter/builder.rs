@@ -42,18 +42,34 @@ impl UnitConverterBuilder {
         UnitConverterBuilder::default()
     }
 
-    pub fn auto_reverse_conversions(mut self, include: bool) -> UnitConverterBuilder {
+    pub fn reverse_base_conversions(mut self, include: bool) -> UnitConverterBuilder {
         self.auto_reverse = include;
         self
     }
 
-    pub fn cache_multiple_conversions(mut self, cache: bool) -> UnitConverterBuilder {
+    pub fn cache_results(mut self, cache: bool) -> UnitConverterBuilder {
         self.cache = cache;
         self
     }
 
     pub fn show_debug_messages(mut self, show: bool) -> UnitConverterBuilder {
         self.show_debug_messages = show;
+        self
+    }
+
+    pub fn add_base_conversions(
+        mut self,
+        mut conversions: Vec<UnitConversion>,
+    ) -> UnitConverterBuilder {
+        self.conversions.append(&mut conversions);
+        self
+    }
+
+    pub fn add_unit_definitions(
+        mut self,
+        mut units: Vec<UnitAbbreviation>,
+    ) -> UnitConverterBuilder {
+        self.abbreviations.append(&mut units);
         self
     }
 
