@@ -44,3 +44,15 @@ impl Error for ConversionError {
         self.source.as_deref()
     }
 }
+
+impl From<std::io::Error> for ConversionError {
+    fn from(value: std::io::Error) -> Self {
+        ConversionError::new(&value.to_string())
+    }
+}
+
+impl From<toml::de::Error> for ConversionError {
+    fn from(value: toml::de::Error) -> Self {
+        ConversionError::new(value.message())
+    }
+}
