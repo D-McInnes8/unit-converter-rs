@@ -69,11 +69,16 @@ impl UnitConverterBuilder {
         mut self,
         mut units: Vec<UnitAbbreviation>,
     ) -> UnitConverterBuilder {
+        for unit in &units {
+            if !self.unit_types.contains(&unit.unit_type) {
+                self.unit_types.insert(unit.unit_type.to_owned());
+            }
+        }
         self.abbreviations.append(&mut units);
         self
     }
 
-    pub fn add_base_conversion_source(
+    /*pub fn add_base_conversion_source(
         mut self,
         source: Box<dyn BaseConversionSource>,
     ) -> UnitConverterBuilder {
@@ -191,7 +196,7 @@ impl UnitConverterBuilder {
         );
 
         self
-    }
+    }*/
 
     /*pub fn add_conversion(
         mut self,
@@ -223,8 +228,12 @@ impl UnitConverterBuilder {
 
     pub fn build(self) -> Result<UnitConverter, ConversionError> {
         // Load base base_conversions
-        let base = self.load_base_conversions();
-        let units = self.load_unit_definition();
+        //let base = self.load_base_conversions();
+        //let units = self.load_unit_definition();
+
+        debug!("{:?}", &self.unit_types);
+        debug!("{:?}", &self.abbreviations);
+        debug!("{:?}", &self.conversions);
 
         // Populate graph
         let mut graphs = vec![];

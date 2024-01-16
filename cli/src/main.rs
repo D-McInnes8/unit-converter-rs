@@ -26,16 +26,7 @@ fn main() {
     debug!("Cli args: {:?}", cli);
 
     info!("Building unit converter object");
-    /*match UnitConverterBuilder::new()
-    .auto_reverse_conversions(true)
-    .add_base_conversion_source(Box::new(BaseConversionsSourceToml::new(
-        "Units.toml",
-        false,
-    )))
-    .add_unit_definitions_toml("Units.toml")
-    .add_default_conversions_toml("Base_Conversions.toml")
-    .build()*/
-    match build_unit_converter() {
+    match build_converter() {
         Ok(mut converter) => {
             if cli.interactive == true {
                 let mut history = InputHistory::default();
@@ -76,7 +67,7 @@ fn main() {
     }
 }
 
-fn build_unit_converter() -> Result<UnitConverter, ConversionError> {
+fn build_converter() -> Result<UnitConverter, ConversionError> {
     let conversions = BaseConversionsSourceToml::new("Base_Conversions.toml", false).load()?;
     let units = UnitDefinitionSourceToml::new("Units.toml", false).load()?;
 
