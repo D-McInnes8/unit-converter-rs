@@ -4,24 +4,19 @@ use toml::{Table, Value};
 use crate::converter::error::ConversionError;
 use crate::parser::UnitAbbreviation;
 use crate::source::toml::parse_helper::{parse_array, parse_table};
-use crate::source::UnitDefitionSource;
 
 pub struct UnitDefinitionSourceToml {
     path: String,
-    optional: bool,
 }
 
 impl UnitDefinitionSourceToml {
-    pub fn new(path: &str, optional: bool) -> UnitDefinitionSourceToml {
+    pub fn new(path: &str) -> UnitDefinitionSourceToml {
         UnitDefinitionSourceToml {
             path: path.to_owned(),
-            optional: optional,
         }
     }
-}
 
-impl UnitDefitionSource for UnitDefinitionSourceToml {
-    fn load(&self) -> Result<Vec<crate::parser::UnitAbbreviation>, ConversionError> {
+    pub fn load(&self) -> Result<Vec<crate::parser::UnitAbbreviation>, ConversionError> {
         info!("Loading unit abbreviations");
         let contents = std::fs::read_to_string(&self.path)?;
         let config = contents.parse::<Table>()?;
@@ -47,9 +42,5 @@ impl UnitDefitionSource for UnitDefinitionSourceToml {
         }
 
         Ok(result)
-    }
-
-    fn optional(&self) -> bool {
-        self.optional
     }
 }

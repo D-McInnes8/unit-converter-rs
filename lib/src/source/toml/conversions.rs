@@ -3,24 +3,19 @@ use toml::{Table, Value};
 
 use crate::converter::UnitConversion;
 use crate::source::toml::parse_helper::parse_table;
-use crate::source::BaseConversionSource;
 
 pub struct BaseConversionsSourceToml {
     path: String,
-    optional: bool,
 }
 
 impl BaseConversionsSourceToml {
-    pub fn new(path: &str, optional: bool) -> BaseConversionsSourceToml {
+    pub fn new(path: &str) -> BaseConversionsSourceToml {
         BaseConversionsSourceToml {
             path: path.to_owned(),
-            optional: optional,
         }
     }
-}
 
-impl BaseConversionSource for BaseConversionsSourceToml {
-    fn load(
+    pub fn load(
         &self,
     ) -> Result<Vec<crate::converter::UnitConversion>, crate::converter::error::ConversionError>
     {
@@ -60,9 +55,5 @@ impl BaseConversionSource for BaseConversionsSourceToml {
             &self.path
         );
         Ok(result)
-    }
-
-    fn optional(&self) -> bool {
-        self.optional
     }
 }

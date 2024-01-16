@@ -9,7 +9,6 @@ use unitconvert::converter::error::ConversionError;
 use unitconvert::converter::UnitConverter;
 use unitconvert::source::toml::conversions::BaseConversionsSourceToml;
 use unitconvert::source::toml::units::UnitDefinitionSourceToml;
-use unitconvert::source::{BaseConversionSource, UnitDefitionSource};
 
 use crate::input::{generate_input_theme, InputHistory};
 use crate::options::CliOptions;
@@ -68,8 +67,8 @@ fn main() {
 }
 
 fn build_converter() -> Result<UnitConverter, ConversionError> {
-    let conversions = BaseConversionsSourceToml::new("Base_Conversions.toml", false).load()?;
-    let units = UnitDefinitionSourceToml::new("Units.toml", false).load()?;
+    let conversions = BaseConversionsSourceToml::new("Base_Conversions.toml").load()?;
+    let units = UnitDefinitionSourceToml::new("Units.toml").load()?;
 
     UnitConverterBuilder::new()
         .reverse_base_conversions(true)
