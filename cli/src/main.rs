@@ -5,7 +5,10 @@ use console::{style, Color};
 use dialoguer::Input;
 use log::{debug, info};
 use unitconvert::converter::builder::UnitConverterBuilder;
+use unitconvert::converter::error::ConversionError;
 use unitconvert::converter::UnitConverter;
+use unitconvert::source::toml::conversions::BaseConversionsSourceToml;
+use unitconvert::source::toml::units::UnitDefinitionSourceToml;
 
 use crate::input::{generate_input_theme, InputHistory};
 use crate::options::CliOptions;
@@ -22,45 +25,57 @@ fn main() {
     debug!("Cli args: {:?}", cli);
 
     info!("Building unit converter object");
-    let mut converter = UnitConverterBuilder::new()
-        .show_debug_messages(true)
-        .auto_reverse_conversions(true)
-        .add_unit_definitions_toml("Units.toml")
-        .add_default_conversions_toml("Base_Conversions.toml")
-        .build();
-
-    if cli.interactive == true {
-        let mut history = InputHistory::default();
-        let theme = generate_input_theme();
-        loop {
-            if let Ok(cmd) = Input::<String>::with_theme(&theme)
-                //.with_prompt(" > ")
-                .history_with(&mut history)
-                .interact_text()
-            {
-                process_cmd(&mut converter, &cmd);
-            }
-        }
-    } else {
-        info!("Waiting for user input");
-        loop {
-            let mut input = String::new();
-            match io::stdin().read_line(&mut input) {
-                Ok(len) => {
-                    if len == 0 {
-                        return;
-                    } else {
-                        let command = remove_new_line_characters(&input);
-                        process_cmd(&mut converter, command);
+    match build_converter() {
+        Ok(mut converter) => {
+            if cli.interactive == true {
+                let mut history = InputHistory::default();
+                let theme = generate_input_theme();
+                loop {
+                    if let Ok(cmd) = Input::<String>::with_theme(&theme)
+                        //.with_prompt(" > ")
+                        .history_with(&mut history)
+                        .interact_text()
+                    {
+                        process_cmd(&mut converter, &cmd);
                     }
                 }
-                Err(error) => {
-                    eprintln!("error: {}", error);
-                    return;
+            } else {
+                info!("Waiting for user input");
+                loop {
+                    let mut input = String::new();
+                    match io::stdin().read_line(&mut input) {
+                        Ok(len) => {
+                            if len == 0 {
+                                return;
+                            } else {
+                                let command = remove_new_line_characters(&input);
+                                process_cmd(&mut converter, command);
+                            }
+                        }
+                        Err(error) => {
+                            eprintln!("error: {}", error);
+                            return;
+                        }
+                    }
                 }
             }
         }
+        Err(error) => {
+            eprintln!("error initializing: {}", error);
+        }
     }
+}
+
+fn build_converter() -> Result<UnitConverter, ConversionError> {
+    let conversions = BaseConversionsSourceToml::new("Base_Conversions.toml").load()?;
+    let units = UnitDefinitionSourceToml::new("Units.toml").load()?;
+
+    UnitConverterBuilder::new()
+        .reverse_base_conversions(true)
+        .cache_results(true)
+        .add_unit_definitions(units)
+        .add_base_conversions(conversions)
+        .build()
 }
 
 fn process_cmd(converter: &mut UnitConverter, cmd: &str) {
