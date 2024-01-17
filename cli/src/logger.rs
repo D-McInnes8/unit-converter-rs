@@ -33,7 +33,7 @@ impl ConsoleLogger {
 
 impl log::Log for ConsoleLogger {
     fn log(&self, record: &log::Record) {
-        if self.enabled == false {
+        if !self.enabled {
             return;
         }
 

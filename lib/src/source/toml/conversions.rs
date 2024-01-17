@@ -24,7 +24,7 @@ impl BaseConversionsSourceToml {
 
         let mut result = vec![];
         for (category, units) in &config {
-            for (unit_from, conversions) in parse_table(&units)? {
+            for (unit_from, conversions) in parse_table(units)? {
                 for (unit_to, value) in parse_table(conversions)? {
                     debug!(
                         "Imported Base Conversion: [{}] {} -> {}: {}",

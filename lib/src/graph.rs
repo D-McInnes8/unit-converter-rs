@@ -48,25 +48,22 @@ where
 
     pub fn new(id: String) -> Graph<N, E> {
         Graph {
-            id: id,
+            id,
             nodes: Vec::new(),
             edges: Vec::new(),
         }
     }
 
     pub fn add_node(&mut self, value: N) -> NodeIndex {
-        let mut existing: NodeIndex = 0;
-        for node in &self.nodes {
+        for (i, node) in self.nodes.iter().enumerate() {
             if node.value == value {
-                //return Err(GraphOperationError::NodeAlreadyExistsForValue);
                 /*debug!(
                     "Attempted to insert a node with a value {:?} that already exists, returning existing ({})",
                     &value,
                     existing
                 );*/
-                return existing;
+                return i;
             }
-            existing += 1;
         }
 
         let index = self.nodes.len();
@@ -75,10 +72,10 @@ where
             &value, &index
         );
         self.nodes.push(NodeData {
-            value: value,
+            value,
             edges: Vec::new(),
         });
-        return index;
+        index
     }
 
     pub fn add_edge(
@@ -95,22 +92,17 @@ where
         let edge_index = self.edges.len();
         let node_data = &mut self.nodes[source];
 
-        self.edges.push(EdgeData {
-            target: target,
-            weight: weight,
-        });
+        self.edges.push(EdgeData { target, weight });
 
         node_data.edges.push(edge_index);
-        return Ok(());
+        Ok(())
     }
 
     pub fn get_node_index(&self, node_value: N) -> Option<NodeIndex> {
-        let mut i = 0;
-        for node in &self.nodes {
+        for (i, node) in self.nodes.iter().enumerate() {
             if node.value == node_value {
                 return Some(i);
             }
-            i += 1;
         }
         None
     }
@@ -141,7 +133,7 @@ where
             "Unable to find edge weight between nodes {} and {}",
             source, target
         );
-        return None;
+        None
     }
 
     pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(&N, &E)> {
@@ -157,7 +149,7 @@ where
         while let Some(node) = queue.pop_front() {
             for edge in &self.nodes[node].edges {
                 let edge_data = &self.edges[*edge];
-                if visited[edge_data.target] == false {
+                if !visited[edge_data.target] {
                     visited[edge_data.target] = true;
                     dist[edge_data.target] = dist[node] + 1;
                     path[edge_data.target] = Some((node, edge_data.target, &edge_data.weight));

@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConversionError {
     source: Option<Box<dyn Error>>,
     message: Option<String>,
@@ -16,19 +16,10 @@ impl ConversionError {
     }
 }
 
-impl Default for ConversionError {
-    fn default() -> Self {
-        ConversionError {
-            source: None,
-            message: None,
-        }
-    }
-}
-
 impl fmt::Display for ConversionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(source) = &self.source {
-            return write!(f, "{}", source.to_string());
+            return write!(f, "{}", source);
         }
 
         let error_message = match &self.message {

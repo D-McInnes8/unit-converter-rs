@@ -21,7 +21,7 @@ pub fn length_conversion(input: &str, expected: f64) {
         let actual = converter.convert_from_expression(input);
 
         assert!(actual.is_ok(), "Returned error {:?}", actual.err());
-        assert_eq!(expected, actual.unwrap());
+        assert_eq!(expected, actual.unwrap().value);
     }
 }
 

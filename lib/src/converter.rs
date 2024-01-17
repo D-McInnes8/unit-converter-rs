@@ -33,26 +33,33 @@ impl UnitConverter {
         cache: bool,
     ) -> UnitConverter {
         UnitConverter {
-            graph: graph,
-            abbreviations: abbreviations,
-            cache: cache,
+            graph,
+            abbreviations,
+            cache,
         }
     }
 
-    pub fn convert_from_expression(&mut self, input: &str) -> Result<f64, ConversionError> {
-        match parse_conversion(&self.abbreviations, &input) {
+    pub fn convert_from_expression(
+        &mut self,
+        input: &str,
+    ) -> Result<UnitConversion, ConversionError> {
+        match parse_conversion(&self.abbreviations, input) {
             Ok(conversion) => {
                 info!("Parsed {:?}", conversion);
-                return self.convert_from_definition(
+                let result = self.convert_from_definition(
                     &conversion.unit_type,
                     &conversion.from,
                     &conversion.to,
                     conversion.value,
-                );
+                )?;
+                Ok(UnitConversion {
+                    value: result,
+                    from: conversion.from,
+                    to: conversion.to,
+                    unit_type: conversion.unit_type,
+                })
             }
-            Err(err) => {
-                return Err(err);
-            }
+            Err(err) => Err(err),
         }
     }
 
@@ -123,12 +130,10 @@ impl UnitConverter {
     }
 
     fn get_graph_index(&self, category: &str) -> Option<usize> {
-        let mut i = 0;
-        for graph in &self.graph {
+        for (i, graph) in self.graph.iter().enumerate() {
             if graph.id == category {
                 return Some(i);
             }
-            i += 1;
         }
         None
     }

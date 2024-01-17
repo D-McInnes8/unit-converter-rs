@@ -38,13 +38,13 @@ pub fn parse_conversion(
 
     match result {
         Ok((_, (value, convert_from, _, convert_to))) => {
-            let (first_type, parsed_convert_from) = parse_unit(&abbreviations, convert_from)?;
+            let (first_type, parsed_convert_from) = parse_unit(abbreviations, convert_from)?;
             debug!(
                 "Parsed first unit from {} to {}",
                 convert_from, parsed_convert_from
             );
 
-            let (second_type, parsed_convert_to) = parse_unit(&abbreviations, convert_to)?;
+            let (second_type, parsed_convert_to) = parse_unit(abbreviations, convert_to)?;
             debug!(
                 "Parsed second unit from {} to {}",
                 convert_to, parsed_convert_to
@@ -54,12 +54,12 @@ pub fn parse_conversion(
                 return Err(ConversionError::new("Units are of different types"));
             }
 
-            return Ok(UnitConversion {
-                value: value,
+            Ok(UnitConversion {
+                value,
                 from: parsed_convert_from,
                 to: parsed_convert_to,
                 unit_type: first_type,
-            });
+            })
         }
         Err(err) => {
             error!("Error parsing expression {}", input);

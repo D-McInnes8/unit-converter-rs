@@ -27,7 +27,7 @@ fn main() {
     info!("Building unit converter object");
     match build_converter() {
         Ok(mut converter) => {
-            if cli.interactive == true {
+            if cli.interactive {
                 let mut history = InputHistory::default();
                 let theme = generate_input_theme();
                 loop {
@@ -82,13 +82,25 @@ fn process_cmd(converter: &mut UnitConverter, cmd: &str) {
     if cmd == "exit" {
         process::exit(0);
     } else if cmd == "units" {
-        display_converter_units(&converter);
+        display_converter_units(converter);
     } else if cmd == "help" {
         show_help_text();
     } else {
         match converter.convert_from_expression(cmd) {
             Ok(result) => {
-                println!("{}", style(result).fg(console::Color::White).bold())
+                if result.value > 99999.0 || result.value < 0.00009 {
+                    println!(
+                        "{:e} {}",
+                        style(result.value).fg(console::Color::White).bold(),
+                        result.to.to_lowercase()
+                    )
+                } else {
+                    println!(
+                        "{} {}",
+                        style(result.value).fg(console::Color::White).bold(),
+                        result.to.to_lowercase()
+                    )
+                }
             }
             Err(err) => eprintln!(
                 "{} {}",
@@ -115,9 +127,8 @@ fn display_converter_units(converter: &UnitConverter) {
 }
 
 fn remove_new_line_characters(input: &String) -> &str {
-    let result = input
+    input
         .strip_suffix("\r\n")
-        .or(input.strip_suffix("\n"))
-        .unwrap_or(input);
-    return result;
+        .or(input.strip_suffix('\n'))
+        .unwrap_or(input)
 }
