@@ -86,6 +86,18 @@ fn process_cmd(converter: &mut UnitConverter, cmd: &str) {
     } else if cmd == "help" {
         show_help_text();
     } else {
+        if cmd.chars().all(|x| x.is_alphabetic()) {
+            match converter.unit_info(cmd) {
+                Ok(u) => println!("{} ({})", u.unit, u.unit_type),
+                Err(_) => eprintln!(
+                    "{} Unknown command {}",
+                    style(format!("{: <5}", "ERROR")).fg(Color::Red).bold(),
+                    style(cmd).italic()
+                ),
+            };
+            return;
+        }
+
         match converter.convert_from_expression(cmd) {
             Ok(result) => {
                 if result.value > 99999.0 || result.value < 0.00009 {

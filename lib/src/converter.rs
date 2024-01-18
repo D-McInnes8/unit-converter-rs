@@ -39,6 +39,17 @@ impl UnitConverter {
         }
     }
 
+    pub fn unit_info(&self, input: &str) -> Result<UnitAbbreviation, ConversionError> {
+        let lc_input = input.to_lowercase();
+        for abbrev in &self.abbreviations {
+            if abbrev.unit.to_lowercase() == lc_input || abbrev.abbrev == lc_input {
+                return Ok(abbrev.to_owned());
+            }
+        }
+
+        Err(ConversionError::default())
+    }
+
     pub fn convert_from_expression(
         &mut self,
         input: &str,

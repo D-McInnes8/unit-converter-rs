@@ -8,7 +8,7 @@ use nom::{
 
 use crate::converter::{error::ConversionError, UnitConversion};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnitAbbreviation {
     pub unit: String,
     pub abbrev: String,
@@ -140,6 +140,16 @@ mod tests {
                 abbrev: String::from("Mm"),
                 unit_type: String::from("Length"),
             },
+            UnitAbbreviation {
+                unit: String::from("Kilometer"),
+                abbrev: String::from("km"),
+                unit_type: String::from("Length"),
+            },
+            UnitAbbreviation {
+                unit: String::from("NauticalMile"),
+                abbrev: String::from("nmi"),
+                unit_type: String::from("Length"),
+            },
         ]
     }
 
@@ -185,6 +195,21 @@ mod tests {
             value: 1.0,
             from: String::from("Megameter"),
             to: String::from("Millimeter"),
+            unit_type: String::from("Length"),
+        };
+        let actual = parse_conversion(&abbreviations, &mut input).unwrap();
+        assert_eq!(expected, actual)
+    }
+
+    #[test]
+    fn e_notation() {
+        let mut input = "1.079913e9km -> nmi";
+        let abbreviations = construct_unit_abbreviations();
+
+        let expected = UnitConversion {
+            value: 1079913000.0,
+            from: String::from("Kilometer"),
+            to: String::from("NauticalMile"),
             unit_type: String::from("Length"),
         };
         let actual = parse_conversion(&abbreviations, &mut input).unwrap();
