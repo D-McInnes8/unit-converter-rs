@@ -1,7 +1,7 @@
 use super::error::ParseError;
 use super::expression::{Function, Operator};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Token {
     Operator { value: Operator },
     Func { value: Function },
@@ -169,9 +169,11 @@ mod tests {
     #[test]
     fn negative_number() {
         let expected = vec![
-            token_number!(-5.0),
             token_operator!(Operator::Subtraction),
-            token_number!(-10.0),
+            token_number!(5.0),
+            token_operator!(Operator::Subtraction),
+            token_operator!(Operator::Subtraction),
+            token_number!(10.0),
         ];
         let actual = get_tokens("-5 - -10");
         assert_eq!(expected, actual.unwrap());
