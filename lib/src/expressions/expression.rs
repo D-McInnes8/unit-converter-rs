@@ -3,7 +3,7 @@ use super::tokenizer::get_tokens;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum OperationType {
-    Number { value: f64 },
+    Number(f64),
     BinaryExpression { operator: Operator },
     Function { name: Function, value: f64 },
 }

@@ -1,10 +1,7 @@
-use std::collections::VecDeque;
 use std::rc::Rc;
 
-use log::debug;
-
 use super::error::ParseError;
-use super::expression::{OperationType, Operator};
+use super::expression::OperationType;
 use super::tokenizer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -41,33 +38,29 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
 
     for token in tokens {
         match token {
-            Token::Number { value } => output.push(token),
-            Token::Operator { value } => {
-                let o1 = value;
-                loop {
-                    if let Some(o2) = stack.last() {
-                        match *o2 {
-                            Token::Left => {
-                                stack.push(token);
-                                break;
-                            }
-                            Token::Operator { value }
-                                if (value.prec() > o1.prec())
-                                    || (value.prec() == o1.prec()
-                                        && o1.assoc() == Associativity::Left) =>
-                            {
-                                //let a = stack.pop();
-                                output.push(stack.pop().unwrap());
-                            }
-                            _ => unreachable!(),
+            Token::Number(_) => output.push(token),
+            Token::Operator(o1) => loop {
+                if let Some(o2) = stack.last() {
+                    match *o2 {
+                        Token::Left => {
+                            stack.push(token);
+                            break;
                         }
-                    } else {
-                        stack.push(token);
-                        break;
+                        Token::Operator(o2)
+                            if (o2.prec() > o1.prec())
+                                || (o2.prec() == o1.prec()
+                                    && o1.assoc() == Associativity::Left) =>
+                        {
+                            output.push(stack.pop().unwrap());
+                        }
+                        _ => unreachable!(),
                     }
+                } else {
+                    stack.push(token);
+                    break;
                 }
-            }
-            Token::Func { value } => {}
+            },
+            Token::Func(_) => {}
             Token::Left => stack.push(token),
             Token::Right => loop {
                 if let Some(top) = stack.last() {
@@ -99,16 +92,16 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::expressions::expression::Operator;
+
     use super::*;
 
     #[test]
     fn shunting_yard_test() {
         let tokens: Vec<Token> = vec![
-            Token::Number { value: 5.0 },
-            Token::Operator {
-                value: Operator::Addition,
-            },
-            Token::Number { value: 10.0 },
+            Token::Number(5.0),
+            Token::Operator(Operator::Addition),
+            Token::Number(10.0),
         ];
         let actual = shunting_yard(tokens);
         let expected: Vec<Token> = vec![];

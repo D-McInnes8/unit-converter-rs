@@ -3,9 +3,9 @@ use super::expression::{Function, Operator};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Token {
-    Operator { value: Operator },
-    Func { value: Function },
-    Number { value: f64 },
+    Operator(Operator),
+    Func(Function),
+    Number(f64),
     Left,
     Right,
 }
@@ -13,21 +13,21 @@ pub enum Token {
 #[macro_export]
 macro_rules! token_operator {
     ($e:expr) => {
-        Token::Operator { value: $e }
+        Token::Operator($e)
     };
 }
 
 #[macro_export]
 macro_rules! token_func {
     ($e:expr) => {
-        Token::Func { value: $e }
+        Token::Func($e)
     };
 }
 
 #[macro_export]
 macro_rules! token_number {
     ($e:expr) => {
-        Token::Number { value: $e }
+        Token::Number($e)
     };
 }
 
@@ -47,18 +47,10 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
                 parse(remaining, tokens)?;
                 return Ok(());
             }
-            c if c == '+' => tokens.push(Token::Operator {
-                value: Operator::Addition,
-            }),
-            c if c == '-' => tokens.push(Token::Operator {
-                value: Operator::Subtraction,
-            }),
-            c if c == '*' => tokens.push(Token::Operator {
-                value: Operator::Multiplication,
-            }),
-            c if c == '/' => tokens.push(Token::Operator {
-                value: Operator::Division,
-            }),
+            c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
+            c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
+            c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
+            c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '(' => tokens.push(Token::Left),
             c if c == ')' => tokens.push(Token::Right),
             c if c.is_alphabetic() => {
@@ -92,7 +84,7 @@ fn parse_number(input: &str) -> Result<(&str, Token), ParseError> {
         Err(err) => return Err(ParseError::new("", "", Some(err))),
     };
 
-    Ok((&input[end_pos..input.len()], Token::Number { value: num }))
+    Ok((&input[end_pos..input.len()], Token::Number(num)))
 }
 
 fn parse_func(input: &str) -> Result<(&str, Token), ParseError> {
@@ -120,10 +112,7 @@ fn parse_func(input: &str) -> Result<(&str, Token), ParseError> {
         }
     };
 
-    Ok((
-        &input[end_pos..input.len()],
-        Token::Func { value: function },
-    ))
+    Ok((&input[end_pos..input.len()], Token::Func(function)))
 }
 
 #[cfg(test)]
