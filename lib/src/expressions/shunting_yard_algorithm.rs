@@ -36,9 +36,7 @@ pub fn parse(input: &str) -> Option<AstNode> {
 }
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
-    //let mut output: VecDeque<f64> = VecDeque::new();
     let mut output = Vec::with_capacity(tokens.len());
-    let mut out: String;
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
@@ -68,41 +66,6 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
                         break;
                     }
                 }
-                /*while let Some(o2) = stack.last() {
-                    let (o1_prec, o1_assoc) = get_associativity(&token);
-                    let (o2_prec, _) = get_associativity(o2);
-
-                    match *o2 {
-                        Token::Left => break,
-                        Token::Operator { value }
-                            if (value.prec() > value.prec())
-                                || (value.prec() == value.prec()
-                                    && value.assoc() == Associativity::Left) =>
-                        {
-                            //let a = stack.pop();
-                            //output.push(stack.pop().unwrap());
-                        }
-                        _ => unreachable!(),
-                    }
-
-                    if *o2 != Token::Left
-                        && (o2_prec > o1_prec
-                            || (o1_prec == o2_prec && o1_assoc == Associativity::Left))
-                    {
-                        output.push(stack.pop().unwrap());
-                    } else {
-                        break;
-                    }
-                }*/
-                /*while !stack.is_empty() {
-                    let o2 = stack.last();
-                }
-                while let Some(o2) = stack.pop() {
-                    if o2 == Token::Left {
-                        stack.push(o2);
-                        continue;
-                    }
-                }*/
             }
             Token::Func { value } => {}
             Token::Left => stack.push(token),
@@ -110,31 +73,28 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
                 if let Some(top) = stack.last() {
                     if *top == Token::Left {
                         _ = stack.pop();
+                        break;
                     }
 
                     output.push(stack.pop().unwrap());
                 }
+                let err: Option<ParseError> = None;
+                return Err(ParseError::new("Mismatched parentheses", "", err));
             },
         };
     }
 
     println!("{:?}", stack);
 
-    while let Some(op) = stack.pop() {
-        if op == Token::Left {
+    while let Some(operator) = stack.pop() {
+        if operator == Token::Left || operator == Token::Right {
             let err: Option<ParseError> = None;
             return Err(ParseError::new("", "", err));
         }
-        output.push(op);
+        output.push(operator);
     }
 
     Ok(output)
-}
-
-fn get_associativity(input: &Token) -> (u32, Associativity) {
-    match input {
-        _ => (0, Associativity::Left),
-    }
 }
 
 #[cfg(test)]
