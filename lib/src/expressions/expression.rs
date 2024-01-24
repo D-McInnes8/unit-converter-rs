@@ -14,6 +14,7 @@ pub enum Operator {
     Subtraction,
     Multiplication,
     Division,
+    Exponentiation,
 }
 
 impl Operator {
@@ -23,6 +24,7 @@ impl Operator {
             | Operator::Subtraction
             | Operator::Multiplication
             | Operator::Division => Associativity::Left,
+            Operator::Exponentiation => Associativity::Right,
         }
     }
 
@@ -32,6 +34,7 @@ impl Operator {
             Operator::Subtraction => 2,
             Operator::Multiplication => 3,
             Operator::Division => 3,
+            Operator::Exponentiation => 4,
         }
     }
 }

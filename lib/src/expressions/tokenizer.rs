@@ -45,6 +45,7 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
             c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
             c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
+            c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
             c if c == '(' => tokens.push(Token::Left),
             c if c == ')' => tokens.push(Token::Right),
             c if c.is_numeric() => {
