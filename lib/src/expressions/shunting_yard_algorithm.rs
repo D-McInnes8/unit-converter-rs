@@ -37,59 +37,75 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
-        println!("Checking token {:?}", token);
+        println!();
+        println!("Checking Token {:?}", token);
+        println!("Stack: {:?}", stack);
+        println!("Output: {:?}", output);
+        println!();
         match token {
             Token::Number(_) => {
-                println!("Pushing number to output {:?}", token);
+                println!("Add token {:?} to output", token);
                 output.push(token);
             }
-            Token::Operator(o1) => loop {
-                if let Some(o2) = stack.last() {
-                    println!("o1: {:?}, o2: {:?}", o1, o2);
-                    match *o2 {
-                        Token::Left => {
-                            println!("Pushing left token to stack");
-                            stack.push(token);
-                            break;
+            Token::Func(_) => {
+                println!("Push token {:?} to stack", token);
+                stack.push(token);
+            }
+            Token::Operator(o1) => {
+                loop {
+                    if let Some(o2) = stack.last() {
+                        match *o2 {
+                            Token::Operator(o2)
+                                if (o2.prec() > o1.prec())
+                                    || (o2.prec() == o1.prec()
+                                        && o1.assoc() == Associativity::Left) =>
+                            {
+                                println!("Pop token {:?} to output", token);
+                                output.push(stack.pop().unwrap());
+                            }
+                            _ => {
+                                break;
+                            }
                         }
-                        Token::Operator(o2)
-                            if (o2.prec() > o1.prec())
-                                || (o2.prec() == o1.prec()
-                                    && o1.assoc() == Associativity::Left) =>
-                        {
-                            println!(
-                                "Popping {:?} of the stack and pushing onto output queue",
-                                o2
-                            );
-                            output.push(stack.pop().unwrap());
-                        }
-                        _ => {
-                            println!("Pushing {:?} token to stack B", token);
-                            stack.push(token);
-                            break;
-                        }
+                    } else {
+                        break;
                     }
-                } else {
-                    println!("Pushing {:?} token to stack A", token);
-                    stack.push(token);
-                    break;
                 }
-            },
-            Token::Func(_) => {}
+                println!("Push token {:?} to stack", token);
+                stack.push(token);
+            }
+            Token::Comma => {
+                println!("Ignore");
+                while let Some(top) = stack.last() {
+                    if *top != Token::Left {
+                        println!("Pop token {:?} to output", top);
+                        output.push(stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+            }
             Token::Left => {
-                println!("Pushing left token onto the stack (match)");
+                println!("Push token {:?} to stack", token);
                 stack.push(token);
             }
             Token::Right => loop {
-                println!("Stack: {:?}", stack);
                 if let Some(top) = stack.last() {
                     if *top == Token::Left {
-                        println!("Popping top of stack and discarding left paren");
+                        println!("Pop stack");
                         _ = stack.pop();
+
+                        if let Some(t) = stack.last() {
+                            if let Token::Func(_) = t {
+                                println!("Pop token {:?} to output", t);
+                                output.push(stack.pop().unwrap());
+                            }
+                        }
+
                         break;
                     }
 
-                    println!("Popping {:?} from stack and pushing to output queue", top);
+                    println!("Pop token {:?} to output", top);
                     output.push(stack.pop().unwrap());
                 } else {
                     let err: Option<ParseError> = None;
@@ -99,14 +115,16 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
         };
     }
 
-    println!("{:?}", stack);
-
+    println!();
+    println!("Stack: {:?}", stack);
+    println!("Output: {:?}", output);
+    println!();
     while let Some(operator) = stack.pop() {
         if operator == Token::Left || operator == Token::Right {
             let err: Option<ParseError> = None;
-            return Err(ParseError::new("", "", err));
+            return Err(ParseError::new("Mismatched 2", "", err));
         }
-        println!("Pushing operator {:?} onto output queue", operator);
+        println!("Pop token {:?} to output", operator);
         output.push(operator);
     }
 
@@ -115,12 +133,32 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::expressions::expression::Operator;
+    use crate::expressions::expression::{Function, Operator};
 
     use super::*;
 
     #[test]
-    fn shunting_yard_algorithm() {
+    fn simple() {
+        let tokens: Vec<Token> = vec![
+            Token::Number(10.0),
+            Token::Operator(Operator::Addition),
+            Token::Number(5.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(2.0),
+        ];
+        let expected: Vec<Token> = vec![
+            Token::Number(10.0),
+            Token::Number(5.0),
+            Token::Number(2.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Operator(Operator::Addition),
+        ];
+        let actual = shunting_yard(tokens);
+        assert_eq!(expected, actual.unwrap());
+    }
+
+    #[test]
+    fn complex() {
         let tokens: Vec<Token> = vec![
             Token::Number(3.0),
             Token::Operator(Operator::Addition),
@@ -158,16 +196,33 @@ mod tests {
     }
 
     #[test]
-    fn shunting2() {
+    fn functions() {
         let tokens: Vec<Token> = vec![
-            Token::Number(10.0),
-            Token::Operator(Operator::Addition),
-            Token::Number(5.0),
-            Token::Operator(Operator::Multiplication),
+            Token::Func(Function::Sin),
+            Token::Left,
+            Token::Func(Function::Max),
+            Token::Left,
             Token::Number(2.0),
+            Token::Comma,
+            Token::Number(3.0),
+            Token::Right,
+            Token::Operator(Operator::Division),
+            Token::Number(3.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(1.0),
+            Token::Right,
+        ];
+        let expected: Vec<Token> = vec![
+            Token::Number(2.0),
+            Token::Number(3.0),
+            Token::Func(Function::Max),
+            Token::Number(3.0),
+            Token::Operator(Operator::Division),
+            Token::Number(1.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Func(Function::Sin),
         ];
         let actual = shunting_yard(tokens);
-        let expected: Vec<Token> = vec![];
         assert_eq!(expected, actual.unwrap());
     }
 

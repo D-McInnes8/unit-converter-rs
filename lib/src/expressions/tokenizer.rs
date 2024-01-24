@@ -8,6 +8,7 @@ pub enum Token {
     Number(f64),
     Left,
     Right,
+    Comma,
 }
 
 #[macro_export]
@@ -48,6 +49,7 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
             c if c == '(' => tokens.push(Token::Left),
             c if c == ')' => tokens.push(Token::Right),
+            c if c == ',' => tokens.push(Token::Comma),
             c if c.is_numeric() => {
                 let (remaining, number) = parse_number(&input[pos..])?;
                 tokens.push(number);
@@ -103,7 +105,11 @@ fn parse_func(input: &str) -> Result<(&str, Token), ParseError> {
 
     let token: String = buffer.into_iter().collect();
     let function = match token.to_lowercase().as_str() {
+        "max" => Function::Max,
+        "min" => Function::Min,
         "sin" => Function::Sin,
+        "cos" => Function::Cos,
+        "tan" => Function::Tan,
         _ => {
             return Err(ParseError::new(
                 "Not a valid function name",

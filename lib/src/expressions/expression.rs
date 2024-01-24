@@ -41,7 +41,11 @@ impl Operator {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Function {
+    Max,
+    Min,
     Sin,
+    Cos,
+    Tan,
 }
 
 pub fn evaluate_expression(input: &str, value: f64) -> Option<f64> {
