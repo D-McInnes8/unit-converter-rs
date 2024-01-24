@@ -41,18 +41,18 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
     for (pos, c) in input.char_indices() {
         match c {
             c if c.is_whitespace() => {}
-            c if c.is_numeric() => {
-                let (remaining, number) = parse_number(&input[pos..])?;
-                tokens.push(number);
-                parse(remaining, tokens)?;
-                return Ok(());
-            }
             c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
             c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
             c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
             c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '(' => tokens.push(Token::Left),
             c if c == ')' => tokens.push(Token::Right),
+            c if c.is_numeric() => {
+                let (remaining, number) = parse_number(&input[pos..])?;
+                tokens.push(number);
+                parse(remaining, tokens)?;
+                return Ok(());
+            }
             c if c.is_alphabetic() => {
                 let (remaining, func) = parse_func(&input[pos..])?;
                 tokens.push(func);
@@ -81,7 +81,7 @@ fn parse_number(input: &str) -> Result<(&str, Token), ParseError> {
     let token: String = buffer.into_iter().collect();
     let num = match token.parse::<f64>() {
         Ok(n) => n,
-        Err(err) => return Err(ParseError::new("", "", Some(err))),
+        Err(err) => return Err(ParseError::new("Not a valid number", &token, Some(err))),
     };
 
     Ok((&input[end_pos..input.len()], Token::Number(num)))
@@ -105,7 +105,7 @@ fn parse_func(input: &str) -> Result<(&str, Token), ParseError> {
         "sin" => Function::Sin,
         _ => {
             return Err(ParseError::new(
-                "Unable to parse token",
+                "Not a valid function name",
                 &token,
                 None as Option<ParseError>,
             ));
