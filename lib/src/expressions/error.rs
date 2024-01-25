@@ -37,3 +37,42 @@ impl Error for ParseError {
         self.source.as_deref()
     }
 }
+
+#[derive(Debug, Default)]
+pub struct ExpressionError {
+    message: String,
+    source: Option<Box<dyn Error + 'static>>,
+}
+
+impl ExpressionError {
+    pub fn new(message: &str) -> ExpressionError {
+        ExpressionError {
+            source: None,
+            message: message.to_owned(),
+        }
+    }
+}
+
+impl fmt::Display for ExpressionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.source {
+            Some(source) => write!(f, "{} ({})", self.message, source),
+            None => write!(f, "{}", self.message),
+        }
+    }
+}
+
+impl Error for ExpressionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        self.source.as_deref()
+    }
+}
+
+impl From<ParseError> for ExpressionError {
+    fn from(value: ParseError) -> Self {
+        ExpressionError {
+            message: String::from("Unable to parse expression."),
+            source: Some(Box::new(value)),
+        }
+    }
+}

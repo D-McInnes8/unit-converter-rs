@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use super::error::ParseError;
+use super::error::{ExpressionError, ParseError};
 use super::expression::OperationType;
 use super::tokenizer::Token;
 
@@ -32,23 +32,16 @@ pub fn parse(input: &str) -> Option<AstNode> {
     None
 }
 
-pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
+pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> {
     let mut output = Vec::with_capacity(tokens.len());
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
-        println!();
-        println!("Checking Token {:?}", token);
-        println!("Stack: {:?}", stack);
-        println!("Output: {:?}", output);
-        println!();
         match token {
             Token::Number(_) => {
-                println!("Add token {:?} to output", token);
                 output.push(token);
             }
             Token::Func(_) => {
-                println!("Push token {:?} to stack", token);
                 stack.push(token);
             }
             Token::Operator(o1) => {
@@ -60,7 +53,6 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
                                     || (o2.prec() == o1.prec()
                                         && o1.assoc() == Associativity::Left) =>
                             {
-                                println!("Pop token {:?} to output", token);
                                 output.push(stack.pop().unwrap());
                             }
                             _ => {
@@ -71,14 +63,11 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
                         break;
                     }
                 }
-                println!("Push token {:?} to stack", token);
                 stack.push(token);
             }
             Token::Comma => {
-                println!("Ignore");
                 while let Some(top) = stack.last() {
                     if *top != Token::Left {
-                        println!("Pop token {:?} to output", top);
                         output.push(stack.pop().unwrap());
                     } else {
                         break;
@@ -86,45 +75,32 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ParseError> {
                 }
             }
             Token::Left => {
-                println!("Push token {:?} to stack", token);
                 stack.push(token);
             }
             Token::Right => loop {
                 if let Some(top) = stack.last() {
                     if *top == Token::Left {
-                        println!("Pop stack");
                         _ = stack.pop();
 
-                        if let Some(t) = stack.last() {
-                            if let Token::Func(_) = t {
-                                println!("Pop token {:?} to output", t);
-                                output.push(stack.pop().unwrap());
-                            }
+                        if let Some(Token::Func(_)) = stack.last() {
+                            output.push(stack.pop().unwrap());
                         }
 
                         break;
                     }
 
-                    println!("Pop token {:?} to output", top);
                     output.push(stack.pop().unwrap());
                 } else {
-                    let err: Option<ParseError> = None;
-                    return Err(ParseError::new("Mismatched parentheses", "", err));
+                    return Err(ExpressionError::new("Mismatched parentheses"));
                 }
             },
         };
     }
 
-    println!();
-    println!("Stack: {:?}", stack);
-    println!("Output: {:?}", output);
-    println!();
     while let Some(operator) = stack.pop() {
         if operator == Token::Left || operator == Token::Right {
-            let err: Option<ParseError> = None;
-            return Err(ParseError::new("Mismatched 2", "", err));
+            return Err(ExpressionError::new("Mismatched parentheses"));
         }
-        println!("Pop token {:?} to output", operator);
         output.push(operator);
     }
 
