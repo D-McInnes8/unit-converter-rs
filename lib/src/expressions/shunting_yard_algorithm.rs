@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use super::error::{ExpressionError, ParseError};
-use super::expression::{Function, OperationType, Operator};
+use super::error::ExpressionError;
+use super::expression::{Associativity, OperationType, Operator};
 use super::tokenizer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -11,16 +11,6 @@ pub struct AbstractSyntaxTree {
     right: Option<Rc<AbstractSyntaxTree>>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Associativity {
-    Left,
-    Right,
-}
-
-pub fn parse2(input: &str) -> Option<AbstractSyntaxTree> {
-    None
-}
-
 #[derive(Debug, PartialEq)]
 pub struct AstNode {
     val: OperationType,
@@ -28,11 +18,7 @@ pub struct AstNode {
     right: Option<Box<AstNode>>,
 }
 
-pub fn parse(input: &str) -> Option<AstNode> {
-    None
-}
-
-pub fn eval(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
+pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
     let mut stack = Vec::with_capacity(tokens.len());
 
     for token in tokens {
@@ -65,12 +51,6 @@ pub fn eval(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
         || Err(ExpressionError::new("An unknown error has occured")),
         Ok,
     )
-    //let result = stack.pop().unwrap_or_else(|| Err(ExpressionError::new("")));
-    /*if let Some(result) = stack.pop() {
-        Ok(result)
-    } else {
-        Err(ExpressionError::new(""))
-    }*/
 }
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> {
@@ -153,21 +133,6 @@ mod tests {
     use crate::expressions::expression::{Function, Operator};
 
     use super::*;
-
-    #[test]
-    fn eval2() {
-        let tokens: Vec<Token> = vec![
-            Token::Number(10.0),
-            Token::Operator(Operator::Addition),
-            Token::Number(5.0),
-            Token::Operator(Operator::Multiplication),
-            Token::Number(2.0),
-        ];
-
-        let tokens = shunting_yard(tokens).unwrap();
-        let actual = eval(tokens).unwrap();
-        assert_eq!(20.0, actual);
-    }
 
     #[test]
     fn simple() {

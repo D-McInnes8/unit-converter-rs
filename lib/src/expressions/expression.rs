@@ -1,5 +1,5 @@
 use super::error::ExpressionError;
-use super::shunting_yard_algorithm::{shunting_yard, Associativity};
+use super::shunting_yard_algorithm::shunting_yard;
 use super::tokenizer::get_tokens;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -16,6 +16,12 @@ pub enum Operator {
     Multiplication,
     Division,
     Exponentiation,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum Associativity {
+    Left,
+    Right,
 }
 
 impl Operator {
@@ -52,5 +58,5 @@ pub enum Function {
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     let tokens = get_tokens(input)?;
     let rpn = shunting_yard(tokens)?;
-    super::shunting_yard_algorithm::eval(rpn)
+    super::shunting_yard_algorithm::eval_rpn(rpn)
 }
