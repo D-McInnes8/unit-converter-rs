@@ -1,3 +1,4 @@
+use super::error::ExpressionError;
 use super::shunting_yard_algorithm::{shunting_yard, Associativity};
 use super::tokenizer::get_tokens;
 
@@ -48,9 +49,8 @@ pub enum Function {
     Tan,
 }
 
-pub fn evaluate_expression(input: &str, value: f64) -> Option<f64> {
-    let tokens = get_tokens(input).unwrap();
-    let ast = shunting_yard(tokens);
-
-    None
+pub fn eval(input: &str) -> Result<f64, ExpressionError> {
+    let tokens = get_tokens(input)?;
+    let rpn = shunting_yard(tokens)?;
+    super::shunting_yard_algorithm::eval(rpn)
 }

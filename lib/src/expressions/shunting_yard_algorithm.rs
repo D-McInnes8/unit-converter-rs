@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use super::error::{ExpressionError, ParseError};
-use super::expression::OperationType;
+use super::expression::{Function, OperationType, Operator};
 use super::tokenizer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -30,6 +30,47 @@ pub struct AstNode {
 
 pub fn parse(input: &str) -> Option<AstNode> {
     None
+}
+
+pub fn eval(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
+    let mut stack = Vec::with_capacity(tokens.len());
+
+    for token in tokens {
+        if let Token::Number(n) = token {
+            stack.push(n);
+            continue;
+        }
+
+        let right = stack.pop();
+        let left = stack.pop();
+
+        match (left, right) {
+            (Some(a), Some(b)) => {
+                let result = match token {
+                    Token::Operator(Operator::Addition) => a + b,
+                    Token::Operator(Operator::Subtraction) => a - b,
+                    Token::Operator(Operator::Multiplication) => a * b,
+                    Token::Operator(Operator::Division) => a / b,
+                    Token::Operator(Operator::Exponentiation) => a.powf(b),
+                    _ => unreachable!(),
+                };
+                stack.push(result);
+            }
+            (None, Some(b)) => return Ok(b),
+            (None, None) | (Some(_), None) => unreachable!(),
+        }
+    }
+
+    stack.pop().map_or_else(
+        || Err(ExpressionError::new("An unknown error has occured")),
+        Ok,
+    )
+    //let result = stack.pop().unwrap_or_else(|| Err(ExpressionError::new("")));
+    /*if let Some(result) = stack.pop() {
+        Ok(result)
+    } else {
+        Err(ExpressionError::new(""))
+    }*/
 }
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> {
@@ -112,6 +153,21 @@ mod tests {
     use crate::expressions::expression::{Function, Operator};
 
     use super::*;
+
+    #[test]
+    fn eval2() {
+        let tokens: Vec<Token> = vec![
+            Token::Number(10.0),
+            Token::Operator(Operator::Addition),
+            Token::Number(5.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(2.0),
+        ];
+
+        let tokens = shunting_yard(tokens).unwrap();
+        let actual = eval(tokens).unwrap();
+        assert_eq!(20.0, actual);
+    }
 
     #[test]
     fn simple() {
