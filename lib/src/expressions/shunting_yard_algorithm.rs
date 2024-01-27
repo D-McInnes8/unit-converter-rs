@@ -1,5 +1,7 @@
 use std::ops::Deref;
 
+use crate::expressions::expression::FunctionValue;
+
 use super::error::ExpressionError;
 use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 use super::tokenizer::Token;
@@ -95,7 +97,10 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
         output.push(AbstractSyntaxTreeNode::Number(num));
     } else if let Token::Func(func) = token {
         let top = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
-        output.push(AbstractSyntaxTreeNode::Function { func, value: top })
+        output.push(AbstractSyntaxTreeNode::Function {
+            func,
+            value: FunctionValue::Expression(top.unwrap()),
+        })
     } else if let Token::Operator(operator) = token {
         let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
         let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
@@ -186,7 +191,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
 
 #[cfg(test)]
 mod tests {
-    use crate::expressions::expression::{Function, Operator};
+    use crate::expressions::expression::{Function, FunctionValue, Operator};
     use crate::expressions::tokenizer::get_tokens;
 
     use super::*;
@@ -296,17 +301,18 @@ mod tests {
             operator: Operator::Exponentiation,
             left: Some(Box::new(AbstractSyntaxTreeNode::Function {
                 func: Function::Sin,
-                value: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
-                    operator: Operator::Addition,
-                    left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
-                    right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
-                })),
+                value: FunctionValue::Expression(Box::new(
+                    AbstractSyntaxTreeNode::BinaryExpression {
+                        operator: Operator::Addition,
+                        left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+                        right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
+                    },
+                )),
             })),
             right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
         };
         let actual = shunting_yard(tokens).expect("");
-        eprintln!("{}", actual);
-        assert_ne!(expected, actual);
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -324,9 +330,17 @@ mod tests {
             Token::Number(10.0),
         ];
 
-        let expected = AbstractSyntaxTreeNode::Function {
-            func: Function::Max,
-            value: None,
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Exponentiation,
+            left: Some(Box::new(AbstractSyntaxTreeNode::Function {
+                func: Function::Max,
+                value: FunctionValue::List(vec![
+                    Box::new(AbstractSyntaxTreeNode::Number(2.0)),
+                    Box::new(AbstractSyntaxTreeNode::Number(3.0)),
+                    Box::new(AbstractSyntaxTreeNode::Number(1.0)),
+                ]),
+            })),
+            right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
         };
         let actual = shunting_yard(tokens).expect("");
         eprintln!("{}", actual);
@@ -353,7 +367,7 @@ mod tests {
 
         let expected = AbstractSyntaxTreeNode::Function {
             func: Function::Sin,
-            value: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+            value: FunctionValue::Expression(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
                 operator: Operator::Division,
                 left: None,
                 right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {

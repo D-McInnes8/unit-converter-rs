@@ -16,14 +16,14 @@ pub enum AbstractSyntaxTreeNode {
     },
     Function {
         func: Function,
-        value: Option<Box<AbstractSyntaxTreeNode>>,
-        //value: Option<FunctionValue>,
+        //value: Option<Box<AbstractSyntaxTreeNode>>,
+        value: FunctionValue,
     },
 }
 
 #[derive(Debug, PartialEq)]
 pub enum FunctionValue {
-    BinaryExpression(Box<AbstractSyntaxTreeNode>),
+    Expression(Box<AbstractSyntaxTreeNode>),
     List(Vec<Box<AbstractSyntaxTreeNode>>),
 }
 
@@ -88,7 +88,36 @@ fn fmt_ast_node(
                 children_prefix.clone() + "    ",
             )
         }
-        AbstractSyntaxTreeNode::Function { func, value } => write!(f, "{:?}", func),
+        AbstractSyntaxTreeNode::Function { func, value } => {
+            writeln!(f, "{:?}", func)?;
+            if let FunctionValue::Expression(exp) = value {
+                fmt_ast_node(
+                    exp,
+                    f,
+                    children_prefix.clone() + "└── ",
+                    children_prefix.clone() + "    ",
+                )?;
+            } else if let FunctionValue::List(params) = value {
+                for (i, param) in params.iter().enumerate() {
+                    if i >= params.len() - 1 {
+                        fmt_ast_node(
+                            param,
+                            f,
+                            children_prefix.clone() + "└── ",
+                            children_prefix.clone() + "    ",
+                        )?;
+                    } else {
+                        fmt_ast_node(
+                            param,
+                            f,
+                            children_prefix.clone() + "├── ",
+                            children_prefix.clone() + "│   ",
+                        )?;
+                    }
+                }
+            }
+            write!(f, "")
+        }
     }
 }
 
