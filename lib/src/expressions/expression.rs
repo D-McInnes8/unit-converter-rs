@@ -1,3 +1,4 @@
+//use std::fmt::write;
 use std::fmt::Display;
 use std::ops::Deref;
 
@@ -16,20 +17,78 @@ pub enum AbstractSyntaxTreeNode {
     Function {
         func: Function,
         value: Option<Box<AbstractSyntaxTreeNode>>,
+        //value: Option<FunctionValue>,
     },
 }
 
-impl Display for AbstractSyntaxTreeNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+#[derive(Debug, PartialEq)]
+pub enum FunctionValue {
+    BinaryExpression(Box<AbstractSyntaxTreeNode>),
+    List(Vec<Box<AbstractSyntaxTreeNode>>),
+}
+
+/*impl AbstractSyntaxTreeNode {
+    pub fn print(&self, buffer: &mut String) {
         match self {
-            Self::Number(num) => write!(f, "Number: {}", num),
+            Self::Number(num) => buffer.push_str(format!("{}", num)),
             Self::BinaryExpression {
                 operator,
                 left,
                 right,
-            } => write!(f, ""),
-            Self::Function { func, value } => write!(f, "{:?}: {}", func, ""),
+            } => write!(buffer, ""),
+            Self::Function { func, value } => write!(buffer, ""),
         }
+    }
+}*/
+
+impl Display for AbstractSyntaxTreeNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        /*match self {
+            Self::Number(num) => write!(f, "{}", num),
+            Self::BinaryExpression {
+                operator,
+                left,
+                right,
+            } => {
+                let l = left.as_ref().unwrap().deref();
+                let r = right.as_ref().unwrap().deref();
+                write!(f, "{:?}\n ├── {}\n └── {}", operator, l, r)
+            }
+            Self::Function { func, value } => write!(f, "{:?}: {}", func, ""),
+        }*/
+        fmt_ast_node(self, f, String::new(), String::new())
+    }
+}
+
+fn fmt_ast_node(
+    node: &AbstractSyntaxTreeNode,
+    f: &mut std::fmt::Formatter<'_>,
+    prefix: String,
+    children_prefix: String,
+) -> std::fmt::Result {
+    write!(f, "{}", prefix)?;
+    match node {
+        AbstractSyntaxTreeNode::Number(num) => writeln!(f, "{}", num),
+        AbstractSyntaxTreeNode::BinaryExpression {
+            operator,
+            left,
+            right,
+        } => {
+            writeln!(f, "{:?}", operator)?;
+            fmt_ast_node(
+                left.as_ref().unwrap(),
+                f,
+                children_prefix.clone() + "├── ",
+                children_prefix.clone() + "│   ",
+            )?;
+            fmt_ast_node(
+                right.as_ref().unwrap(),
+                f,
+                children_prefix.clone() + "└── ",
+                children_prefix.clone() + "    ",
+            )
+        }
+        AbstractSyntaxTreeNode::Function { func, value } => write!(f, "{:?}", func),
     }
 }
 

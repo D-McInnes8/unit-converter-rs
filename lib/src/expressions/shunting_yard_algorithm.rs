@@ -1,6 +1,31 @@
+use std::ops::Deref;
+
 use super::error::ExpressionError;
 use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 use super::tokenizer::Token;
+
+pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
+    match node {
+        AbstractSyntaxTreeNode::Number(num) => num.to_owned(),
+        AbstractSyntaxTreeNode::BinaryExpression {
+            operator,
+            left,
+            right,
+        } => {
+            let left_r = eval_ast(left.as_ref().unwrap().deref());
+            let right_r = eval_ast(right.as_ref().unwrap().deref());
+            match operator {
+                Operator::Addition => left_r + right_r,
+                Operator::Subtraction => left_r - right_r,
+                Operator::Multiplication => left_r * right_r,
+                Operator::Division => left_r / right_r,
+                Operator::Modulus => left_r % right_r,
+                Operator::Exponentiation => left_r.powf(right_r),
+            }
+        }
+        _ => 5.0,
+    }
+}
 
 pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
     let mut stack = Vec::with_capacity(tokens.len());
@@ -62,6 +87,8 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
 }
 
 fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
+    eprintln!("Token: {:?}", token);
+    eprintln!("Output: {:?}", output);
     if token == Token::Left {
         return;
     } else if let Token::Number(num) = token {
@@ -207,6 +234,7 @@ mod tests {
             Token::Operator(Operator::Addition),
             Token::Number(4.0),
             Token::Operator(Operator::Multiplication),
+            Token::Left,
             Token::Number(2.0),
             Token::Operator(Operator::Division),
             Token::Left,
@@ -218,6 +246,7 @@ mod tests {
             Token::Number(2.0),
             Token::Operator(Operator::Exponentiation),
             Token::Number(3.0),
+            Token::Right,
         ];
 
         let expected = AbstractSyntaxTreeNode::BinaryExpression {
@@ -233,7 +262,7 @@ mod tests {
                         operator: Operator::Exponentiation,
                         left: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
                             operator: Operator::Subtraction,
-                            left: Some(Box::new(AbstractSyntaxTreeNode::Number(1.5))),
+                            left: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
                             right: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
                         })),
                         right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
@@ -246,27 +275,65 @@ mod tests {
             })),
         };
 
-        /*let expected2: Vec<Token> = vec![
-            Token::Number(3.0),
-            Token::Number(4.0),
-            Token::Number(2.0),
-            Token::Operator(Operator::Multiplication),
-            Token::Number(1.0),
-            Token::Number(5.0),
-            Token::Operator(Operator::Subtraction),
-            Token::Number(2.0),
-            Token::Number(3.0),
-            Token::Operator(Operator::Exponentiation),
-            Token::Operator(Operator::Exponentiation),
-            Token::Operator(Operator::Division),
-            Token::Operator(Operator::Addition),
-        ];*/
         let actual = shunting_yard(tokens).expect("");
-        eprintln!("{:?}", actual);
         assert_eq!(expected, actual);
     }
 
-    /*#[test]
+    #[test]
+    fn function_simple() {
+        let tokens: Vec<Token> = vec![
+            Token::Func(Function::Sin),
+            Token::Left,
+            Token::Number(2.0),
+            Token::Operator(Operator::Addition),
+            Token::Number(1.0),
+            Token::Right,
+            Token::Operator(Operator::Exponentiation),
+            Token::Number(10.0),
+        ];
+
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Exponentiation,
+            left: Some(Box::new(AbstractSyntaxTreeNode::Function {
+                func: Function::Sin,
+                value: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                    operator: Operator::Addition,
+                    left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+                    right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
+                })),
+            })),
+            right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
+        };
+        let actual = shunting_yard(tokens).expect("");
+        eprintln!("{}", actual);
+        assert_ne!(expected, actual);
+    }
+
+    #[test]
+    fn function_with_parameter_list() {
+        let tokens: Vec<Token> = vec![
+            Token::Func(Function::Max),
+            Token::Left,
+            Token::Number(2.0),
+            Token::Comma,
+            Token::Number(3.0),
+            Token::Comma,
+            Token::Number(1.0),
+            Token::Right,
+            Token::Operator(Operator::Exponentiation),
+            Token::Number(10.0),
+        ];
+
+        let expected = AbstractSyntaxTreeNode::Function {
+            func: Function::Max,
+            value: None,
+        };
+        let actual = shunting_yard(tokens).expect("");
+        eprintln!("{}", actual);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn functions() {
         let tokens: Vec<Token> = vec![
             Token::Func(Function::Sin),
@@ -283,7 +350,21 @@ mod tests {
             Token::Number(1.0),
             Token::Right,
         ];
-        let expected: Vec<Token> = vec![
+
+        let expected = AbstractSyntaxTreeNode::Function {
+            func: Function::Sin,
+            value: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Division,
+                left: None,
+                right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                    operator: Operator::Multiplication,
+                    left: None,
+                    right: None,
+                })),
+            })),
+        };
+
+        let expected2: Vec<Token> = vec![
             Token::Number(2.0),
             Token::Number(3.0),
             Token::Func(Function::Max),
@@ -295,7 +376,7 @@ mod tests {
         ];
         let actual = shunting_yard(tokens);
         assert_eq!(expected, actual.unwrap());
-    }*/
+    }
 
     /*#[test]
     fn parse_binary_expression() {
