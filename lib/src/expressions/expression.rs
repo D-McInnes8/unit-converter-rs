@@ -1,6 +1,37 @@
+use std::fmt::Display;
+use std::ops::Deref;
+
 use super::error::ExpressionError;
 use super::shunting_yard_algorithm::{eval_rpn, shunting_yard};
 use super::tokenizer::get_tokens;
+
+#[derive(Debug, PartialEq)]
+pub enum AbstractSyntaxTreeNode {
+    Number(f64),
+    BinaryExpression {
+        operator: Operator,
+        left: Option<Box<AbstractSyntaxTreeNode>>,
+        right: Option<Box<AbstractSyntaxTreeNode>>,
+    },
+    Function {
+        func: Function,
+        value: Option<Box<AbstractSyntaxTreeNode>>,
+    },
+}
+
+impl Display for AbstractSyntaxTreeNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(num) => write!(f, "Number: {}", num),
+            Self::BinaryExpression {
+                operator,
+                left,
+                right,
+            } => write!(f, ""),
+            Self::Function { func, value } => write!(f, "{:?}: {}", func, ""),
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum OperationType {
@@ -58,5 +89,6 @@ pub enum Function {
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     let tokens = get_tokens(input)?;
     let rpn = shunting_yard(tokens)?;
-    eval_rpn(rpn)
+    //eval_rpn(rpn)
+    Err(ExpressionError::new(""))
 }

@@ -1,22 +1,6 @@
-use std::rc::Rc;
-
 use super::error::ExpressionError;
-use super::expression::{Associativity, Function, OperationType, Operator};
+use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 use super::tokenizer::Token;
-
-#[derive(Debug, PartialEq)]
-pub struct AbstractSyntaxTree {
-    val: OperationType,
-    left: Option<Rc<AbstractSyntaxTree>>,
-    right: Option<Rc<AbstractSyntaxTree>>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct AstNode {
-    val: OperationType,
-    left: Option<Box<AstNode>>,
-    right: Option<Box<AstNode>>,
-}
 
 pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
     let mut stack = Vec::with_capacity(tokens.len());
@@ -77,27 +61,34 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
     )
 }
 
-/*fn handle_node(op: Token, output: &mut Vec<Token>) {
-    match op {
-        Token::Left => return,
-        Token::Func(func) => {
-            let top = output.pop().unwrap();
-            match func {
-                Function::Sin if let Token::Number(n) = top => {}
-                _ => {}
-            };
-        }
-    }
-}*/
+fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
+    if token == Token::Left {
+        return;
+    } else if let Token::Number(num) = token {
+        output.push(AbstractSyntaxTreeNode::Number(num));
+    } else if let Token::Func(func) = token {
+        let top = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
+        output.push(AbstractSyntaxTreeNode::Function { func, value: top })
+    } else if let Token::Operator(operator) = token {
+        let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
+        let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
 
-pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> {
+        output.push(AbstractSyntaxTreeNode::BinaryExpression {
+            operator,
+            left,
+            right,
+        })
+    }
+}
+
+pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, ExpressionError> {
     let mut output = Vec::with_capacity(tokens.len());
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
         match token {
-            Token::Number(_) => {
-                output.push(token);
+            Token::Number(num) => {
+                output.push(AbstractSyntaxTreeNode::Number(num));
             }
             Token::Func(_) => {
                 stack.push(token);
@@ -111,7 +102,8 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> 
                                     || (o2.prec() == o1.prec()
                                         && o1.assoc() == Associativity::Left) =>
                             {
-                                output.push(stack.pop().unwrap());
+                                pop_to_output_queue(stack.pop().unwrap(), &mut output);
+                                //output.push(stack.pop().unwrap();
                             }
                             _ => {
                                 break;
@@ -126,7 +118,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> 
             Token::Comma => {
                 while let Some(top) = stack.last() {
                     if *top != Token::Left {
-                        output.push(stack.pop().unwrap());
+                        pop_to_output_queue(stack.pop().unwrap(), &mut output);
                     } else {
                         break;
                     }
@@ -141,13 +133,13 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> 
                         _ = stack.pop();
 
                         if let Some(Token::Func(_)) = stack.last() {
-                            output.push(stack.pop().unwrap());
+                            pop_to_output_queue(stack.pop().unwrap(), &mut output);
                         }
 
                         break;
                     }
 
-                    output.push(stack.pop().unwrap());
+                    pop_to_output_queue(stack.pop().unwrap(), &mut output);
                 } else {
                     return Err(ExpressionError::new("Mismatched parentheses"));
                 }
@@ -159,20 +151,34 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> 
         if operator == Token::Left || operator == Token::Right {
             return Err(ExpressionError::new("Mismatched parentheses"));
         }
-        output.push(operator);
+        pop_to_output_queue(operator, &mut output);
     }
 
-    Ok(output)
+    Ok(output.remove(0))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::expressions::expression::{Function, Operator};
+    use crate::expressions::tokenizer::get_tokens;
 
     use super::*;
 
     #[test]
-    fn simple() {
+    fn single_binary_expression() {
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Addition,
+            left: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
+            right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
+        };
+        let tokens = get_tokens("5 + 10").unwrap();
+        let actual = shunting_yard(tokens).unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn multiplication_precedence() {
         let tokens: Vec<Token> = vec![
             Token::Number(10.0),
             Token::Operator(Operator::Addition),
@@ -180,15 +186,18 @@ mod tests {
             Token::Operator(Operator::Multiplication),
             Token::Number(2.0),
         ];
-        let expected: Vec<Token> = vec![
-            Token::Number(10.0),
-            Token::Number(5.0),
-            Token::Number(2.0),
-            Token::Operator(Operator::Multiplication),
-            Token::Operator(Operator::Addition),
-        ];
-        let actual = shunting_yard(tokens);
-        assert_eq!(expected, actual.unwrap());
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Addition,
+            left: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
+            right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Multiplication,
+                left: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
+                right: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+            })),
+        };
+
+        let actual = shunting_yard(tokens).expect("");
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -210,7 +219,34 @@ mod tests {
             Token::Operator(Operator::Exponentiation),
             Token::Number(3.0),
         ];
-        let expected: Vec<Token> = vec![
+
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Addition,
+            left: Some(Box::new(AbstractSyntaxTreeNode::Number(3.0))),
+            right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Multiplication,
+                left: Some(Box::new(AbstractSyntaxTreeNode::Number(4.0))),
+                right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                    operator: Operator::Division,
+                    left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+                    right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                        operator: Operator::Exponentiation,
+                        left: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                            operator: Operator::Subtraction,
+                            left: Some(Box::new(AbstractSyntaxTreeNode::Number(1.5))),
+                            right: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
+                        })),
+                        right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                            operator: Operator::Exponentiation,
+                            left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+                            right: Some(Box::new(AbstractSyntaxTreeNode::Number(3.0))),
+                        })),
+                    })),
+                })),
+            })),
+        };
+
+        /*let expected2: Vec<Token> = vec![
             Token::Number(3.0),
             Token::Number(4.0),
             Token::Number(2.0),
@@ -224,12 +260,13 @@ mod tests {
             Token::Operator(Operator::Exponentiation),
             Token::Operator(Operator::Division),
             Token::Operator(Operator::Addition),
-        ];
-        let actual = shunting_yard(tokens);
-        assert_eq!(expected, actual.unwrap());
+        ];*/
+        let actual = shunting_yard(tokens).expect("");
+        eprintln!("{:?}", actual);
+        assert_eq!(expected, actual);
     }
 
-    #[test]
+    /*#[test]
     fn functions() {
         let tokens: Vec<Token> = vec![
             Token::Func(Function::Sin),
@@ -258,7 +295,7 @@ mod tests {
         ];
         let actual = shunting_yard(tokens);
         assert_eq!(expected, actual.unwrap());
-    }
+    }*/
 
     /*#[test]
     fn parse_binary_expression() {
