@@ -1,5 +1,5 @@
 use super::error::ExpressionError;
-use super::shunting_yard_algorithm::shunting_yard;
+use super::shunting_yard_algorithm::{eval_rpn, shunting_yard};
 use super::tokenizer::get_tokens;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -16,6 +16,7 @@ pub enum Operator {
     Multiplication,
     Division,
     Exponentiation,
+    Modulus,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -30,17 +31,16 @@ impl Operator {
             Operator::Addition
             | Operator::Subtraction
             | Operator::Multiplication
-            | Operator::Division => Associativity::Left,
+            | Operator::Division
+            | Operator::Modulus => Associativity::Left,
             Operator::Exponentiation => Associativity::Right,
         }
     }
 
     pub const fn prec(self) -> u32 {
         match self {
-            Operator::Addition => 2,
-            Operator::Subtraction => 2,
-            Operator::Multiplication => 3,
-            Operator::Division => 3,
+            Operator::Addition | Operator::Subtraction => 2,
+            Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
             Operator::Exponentiation => 4,
         }
     }
@@ -58,5 +58,5 @@ pub enum Function {
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     let tokens = get_tokens(input)?;
     let rpn = shunting_yard(tokens)?;
-    super::shunting_yard_algorithm::eval_rpn(rpn)
+    eval_rpn(rpn)
 }

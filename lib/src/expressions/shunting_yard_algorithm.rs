@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use super::error::ExpressionError;
-use super::expression::{Associativity, OperationType, Operator};
+use super::expression::{Associativity, Function, OperationType, Operator};
 use super::tokenizer::Token;
 
 #[derive(Debug, PartialEq)]
@@ -21,14 +21,18 @@ pub struct AstNode {
 pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
     let mut stack = Vec::with_capacity(tokens.len());
 
-    for token in tokens {
+    eprintln!("Tokens: {:?}", &tokens);
+
+    for token in &tokens {
         if let Token::Number(n) = token {
-            stack.push(n);
+            stack.push(*n);
             continue;
         }
 
         let right = stack.pop();
         let left = stack.pop();
+
+        eprintln!("Right: {:?}, Left: {:?}", right, left);
 
         match (left, right) {
             (Some(a), Some(b)) => {
@@ -38,11 +42,31 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
                     Token::Operator(Operator::Multiplication) => a * b,
                     Token::Operator(Operator::Division) => a / b,
                     Token::Operator(Operator::Exponentiation) => a.powf(b),
+                    Token::Operator(Operator::Modulus) => a % b,
+                    Token::Func(func) => {
+                        eprintln!("Func: {:?}", func);
+                        eprintln!("Right: {:?}", right);
+                        eprintln!("Left: {:?}", left);
+                        eprintln!("Output: {:?}", &tokens);
+                        unreachable!();
+                    }
                     _ => unreachable!(),
                 };
-                stack.push(result);
+                stack.push(result.to_owned());
             }
-            (None, Some(b)) => return Ok(b),
+            (None, Some(b)) => {
+                if let Token::Func(func) = token {
+                    let result = match func {
+                        Function::Sin => b.sin(),
+                        Function::Cos => b.cos(),
+                        Function::Tan => b.tan(),
+                        _ => return Ok(b),
+                    };
+                    stack.push(result.to_owned());
+                } else {
+                    return Ok(b);
+                }
+            }
             (None, None) | (Some(_), None) => unreachable!(),
         }
     }
@@ -52,6 +76,19 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
         Ok,
     )
 }
+
+/*fn handle_node(op: Token, output: &mut Vec<Token>) {
+    match op {
+        Token::Left => return,
+        Token::Func(func) => {
+            let top = output.pop().unwrap();
+            match func {
+                Function::Sin if let Token::Number(n) = top => {}
+                _ => {}
+            };
+        }
+    }
+}*/
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<Vec<Token>, ExpressionError> {
     let mut output = Vec::with_capacity(tokens.len());

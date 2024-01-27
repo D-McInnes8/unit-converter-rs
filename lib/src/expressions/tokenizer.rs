@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use super::error::ParseError;
 use super::expression::{Function, Operator};
 
@@ -47,9 +49,11 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
             c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
+            c if c == '%' => tokens.push(Token::Operator(Operator::Modulus)),
             c if c == '(' => tokens.push(Token::Left),
             c if c == ')' => tokens.push(Token::Right),
             c if c == ',' => tokens.push(Token::Comma),
+            c if c == 'π' => tokens.push(Token::Number(PI)),
             c if c.is_numeric() => {
                 let (remaining, number) = parse_number(&input[pos..])?;
                 tokens.push(number);
