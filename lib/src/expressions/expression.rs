@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::ops::Deref;
 
 use super::error::ExpressionError;
-use super::shunting_yard_algorithm::{eval_rpn, shunting_yard};
+use super::shunting_yard_algorithm::{eval_ast, eval_rpn, shunting_yard};
 use super::tokenizer::get_tokens;
 
 #[derive(Debug, PartialEq)]
@@ -16,8 +16,15 @@ pub enum AbstractSyntaxTreeNode {
     },
     Function {
         func: Function,
-        //value: Option<Box<AbstractSyntaxTreeNode>>,
         value: FunctionValue,
+    },
+    FunctionExpression {
+        func: Function,
+        expr: Box<AbstractSyntaxTreeNode>,
+    },
+    FunctionParams {
+        func: Function,
+        params: Vec<AbstractSyntaxTreeNode>,
     },
 }
 
@@ -118,6 +125,36 @@ fn fmt_ast_node(
             }
             write!(f, "")
         }
+        AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
+            writeln!(f, "{:?}", func)?;
+            fmt_ast_node(
+                expr,
+                f,
+                children_prefix.clone() + "└── ",
+                children_prefix.clone() + "    ",
+            )
+        }
+        AbstractSyntaxTreeNode::FunctionParams { func, params } => {
+            writeln!(f, "{:?}", func)?;
+            for (i, param) in params.iter().enumerate() {
+                if i >= params.len() - 1 {
+                    fmt_ast_node(
+                        param,
+                        f,
+                        children_prefix.clone() + "└── ",
+                        children_prefix.clone() + "    ",
+                    )?;
+                } else {
+                    fmt_ast_node(
+                        param,
+                        f,
+                        children_prefix.clone() + "├── ",
+                        children_prefix.clone() + "│   ",
+                    )?;
+                }
+            }
+            write!(f, "")
+        }
     }
 }
 
@@ -136,6 +173,19 @@ pub enum Operator {
     Division,
     Exponentiation,
     Modulus,
+}
+
+impl Display for Operator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Operator::Addition => write!(f, "+"),
+            Operator::Subtraction => write!(f, "-"),
+            Operator::Multiplication => write!(f, "*"),
+            Operator::Division => write!(f, "/"),
+            Operator::Exponentiation => write!(f, "^"),
+            Operator::Modulus => write!(f, "%"),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -175,8 +225,20 @@ pub enum Function {
 }
 
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
+    eprintln!();
+    eprintln!("Expression: {}", input);
+    eprintln!();
+    eprintln!();
+
     let tokens = get_tokens(input)?;
-    let rpn = shunting_yard(tokens)?;
-    //eval_rpn(rpn)
-    Err(ExpressionError::new(""))
+    let ast = shunting_yard(tokens)?;
+
+    eprintln!();
+    eprintln!();
+    eprintln!("AST:\n {}", ast);
+    eprintln!();
+    eprintln!("{:?}", ast);
+    eprintln!();
+
+    Ok(eval_ast(&ast))
 }

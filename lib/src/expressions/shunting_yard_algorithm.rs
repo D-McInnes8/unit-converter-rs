@@ -16,17 +16,75 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
         } => {
             let left_r = eval_ast(left.as_ref().unwrap().deref());
             let right_r = eval_ast(right.as_ref().unwrap().deref());
-            match operator {
+            let result = match operator {
                 Operator::Addition => left_r + right_r,
                 Operator::Subtraction => left_r - right_r,
                 Operator::Multiplication => left_r * right_r,
                 Operator::Division => left_r / right_r,
                 Operator::Modulus => left_r % right_r,
                 Operator::Exponentiation => left_r.powf(right_r),
-            }
+            };
+            eprintln!(
+                "Operation: {} {} {} = {}",
+                left_r, operator, right_r, result
+            );
+            result
         }
-        _ => 5.0,
+        AbstractSyntaxTreeNode::Function { func, value } => 5.0,
+        AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
+            let expr_result = eval_ast(expr);
+            let result = match func {
+                Function::Sin => expr_result.sin(),
+                Function::Cos => expr_result.cos(),
+                Function::Tan => expr_result.tan(),
+                _ => unreachable!(),
+            };
+            eprintln!(
+                "Applying Function {:?} ({:?}) = {}",
+                func, expr_result, result
+            );
+            result
+        }
+        AbstractSyntaxTreeNode::FunctionParams { func, params } => {
+            let result = match func {
+                Function::Max => max(params).unwrap(),
+                Function::Min => min(params).unwrap(),
+                _ => unreachable!(),
+            };
+            eprintln!("Applying Function {:?} ({:?}) = {}", func, params, result);
+            result
+        }
     }
+}
+
+fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
+    let mut result = None;
+    for param in params {
+        let ev = eval_ast(&param);
+        if let Some(n) = result {
+            if ev > n {
+                result = Some(ev);
+            }
+        } else {
+            result = Some(ev);
+        }
+    }
+    result
+}
+
+fn min(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
+    let mut result = None;
+    for param in params {
+        let ev = eval_ast(&param);
+        if let Some(n) = result {
+            if ev < n {
+                result = Some(ev);
+            }
+        } else {
+            result = Some(ev);
+        }
+    }
+    result
 }
 
 pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
@@ -91,27 +149,54 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
 fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
     eprintln!("Token: {:?}", token);
     eprintln!("Output: {:?}", output);
+    eprintln!();
     if token == Token::Left {
         return;
     } else if let Token::Number(num) = token {
         output.push(AbstractSyntaxTreeNode::Number(num));
     } else if let Token::Func(func) = token {
-        if output.len() > 1 {
-            let mut params = vec![];
-            while let Some(param) = output.pop() {
-                params.push(Box::new(param));
-            }
-            output.push(AbstractSyntaxTreeNode::Function {
-                func,
-                value: FunctionValue::List(params),
+        let mut params = vec![];
+        while let Some(param) = output.last() {
+            match param {
+                AbstractSyntaxTreeNode::Number(_) => params.push(output.pop().unwrap()),
+                _ => break,
+            };
+        }
+
+        if params.len() > 1 {
+            output.push(AbstractSyntaxTreeNode::FunctionParams {
+                func: func,
+                params: params,
+            })
+        } else if params.len() == 1 {
+            output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                func: func,
+                expr: Box::new(params.remove(0)),
             })
         } else {
-            let top = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
-            output.push(AbstractSyntaxTreeNode::Function {
-                func,
-                value: FunctionValue::Expression(top.unwrap()),
-            });
+            if let Some(expr) = output.pop() {
+                output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                    func: func,
+                    expr: Box::new(expr),
+                })
+            } else {
+                unreachable!();
+            }
         }
+
+        /*if output.len() > 1 {
+            let mut params = vec![];
+            while let Some(param) = output.pop() {
+                params.push(param);
+            }
+            output.push(AbstractSyntaxTreeNode::FunctionParams { func, params })
+        } else {
+            let top = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
+            output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                func,
+                expr: top.unwrap(),
+            });
+        }*/
     } else if let Token::Operator(operator) = token {
         let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
         let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
@@ -125,10 +210,13 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
 }
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, ExpressionError> {
+    eprintln!("Tokens: {:?}", tokens);
+
     let mut output = Vec::with_capacity(tokens.len());
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
+        eprintln!("Analyising token: {:?}", token);
         match token {
             Token::Number(num) => {
                 output.push(AbstractSyntaxTreeNode::Number(num));
@@ -175,7 +263,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                     if *top == Token::Left {
                         _ = stack.pop();
 
-                        if let Some(Token::Func(_)) = stack.last() {
+                        if let Some(Token::Func(func)) = stack.last() {
                             pop_to_output_queue(stack.pop().unwrap(), &mut output);
                         }
 
@@ -197,6 +285,11 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
         pop_to_output_queue(operator, &mut output);
     }
 
+    if output.len() > 1 {
+        return Err(ExpressionError::new(
+            "Output queue contains more than 1 item",
+        ));
+    }
     Ok(output.remove(0))
 }
 
@@ -310,19 +403,21 @@ mod tests {
 
         let expected = AbstractSyntaxTreeNode::BinaryExpression {
             operator: Operator::Exponentiation,
-            left: Some(Box::new(AbstractSyntaxTreeNode::Function {
+            left: Some(Box::new(AbstractSyntaxTreeNode::FunctionExpression {
                 func: Function::Sin,
-                value: FunctionValue::Expression(Box::new(
-                    AbstractSyntaxTreeNode::BinaryExpression {
-                        operator: Operator::Addition,
-                        left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
-                        right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
-                    },
-                )),
+                expr: Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                    operator: Operator::Addition,
+                    left: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+                    right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
+                }),
             })),
             right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
         };
         let actual = shunting_yard(tokens).expect("");
+
+        eprintln!("Expected: {}", expected);
+        eprintln!("Actual: {}", actual);
+
         assert_eq!(expected, actual);
     }
 
@@ -343,13 +438,13 @@ mod tests {
 
         let expected = AbstractSyntaxTreeNode::BinaryExpression {
             operator: Operator::Exponentiation,
-            left: Some(Box::new(AbstractSyntaxTreeNode::Function {
+            left: Some(Box::new(AbstractSyntaxTreeNode::FunctionParams {
                 func: Function::Max,
-                value: FunctionValue::List(vec![
-                    Box::new(AbstractSyntaxTreeNode::Number(1.0)),
-                    Box::new(AbstractSyntaxTreeNode::Number(3.0)),
-                    Box::new(AbstractSyntaxTreeNode::Number(2.0)),
-                ]),
+                params: vec![
+                    AbstractSyntaxTreeNode::Number(1.0),
+                    AbstractSyntaxTreeNode::Number(3.0),
+                    AbstractSyntaxTreeNode::Number(2.0),
+                ],
             })),
             right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
         };
@@ -377,23 +472,23 @@ mod tests {
             Token::Right,
         ];
 
-        let expected = AbstractSyntaxTreeNode::Function {
+        let expected = AbstractSyntaxTreeNode::FunctionExpression {
             func: Function::Sin,
-            value: FunctionValue::Expression(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+            expr: Box::new(AbstractSyntaxTreeNode::BinaryExpression {
                 operator: Operator::Multiplication,
                 left: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
                     operator: Operator::Division,
-                    left: Some(Box::new(AbstractSyntaxTreeNode::Function {
+                    left: Some(Box::new(AbstractSyntaxTreeNode::FunctionParams {
                         func: Function::Max,
-                        value: FunctionValue::List(vec![
-                            Box::new(AbstractSyntaxTreeNode::Number(3.0)),
-                            Box::new(AbstractSyntaxTreeNode::Number(2.0)),
-                        ]),
+                        params: vec![
+                            AbstractSyntaxTreeNode::Number(3.0),
+                            AbstractSyntaxTreeNode::Number(2.0),
+                        ],
                     })),
                     right: Some(Box::new(AbstractSyntaxTreeNode::Number(3.0))),
                 })),
                 right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
-            })),
+            }),
         };
 
         let expected2: Vec<Token> = vec![

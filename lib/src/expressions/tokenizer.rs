@@ -46,8 +46,8 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             c if c.is_whitespace() => {}
             c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
             c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
-            c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
-            c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
+            c if c == '*' || c == '×' => tokens.push(Token::Operator(Operator::Multiplication)),
+            c if c == '/' || c == '÷' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
             c if c == '%' => tokens.push(Token::Operator(Operator::Modulus)),
             c if c == '(' => tokens.push(Token::Left),
@@ -205,6 +205,27 @@ mod tests {
             Token::Right,
         ];
         let actual = get_tokens("sin ((1.5 + 5) * 2) - 76 * (sin(5) + 5)");
+        assert_eq!(expected, actual.unwrap());
+    }
+
+    #[test]
+    fn nested_functions() {
+        let expected = vec![
+            Token::Func(Function::Sin),
+            Token::Left,
+            Token::Func(Function::Max),
+            Token::Left,
+            Token::Number(2.0),
+            Token::Comma,
+            Token::Number(3.0),
+            Token::Right,
+            Token::Operator(Operator::Division),
+            Token::Number(3.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(PI),
+            Token::Right,
+        ];
+        let actual = get_tokens("sin ( max ( 2, 3 ) ÷ 3 × π )");
         assert_eq!(expected, actual.unwrap());
     }
 }
