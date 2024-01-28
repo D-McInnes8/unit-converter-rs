@@ -40,23 +40,38 @@ pub fn get_tokens(input: &str) -> Result<Vec<Token>, ParseError> {
     Ok(results)
 }
 
-fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> {
+fn parse(input: &str, tokens: &mut Vec<Token>) -> Result<(), ParseError> {
+    let mut is_negative: Option<usize> = None;
     for (pos, c) in input.char_indices() {
         match c {
             c if c.is_whitespace() => {}
-            c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
-            c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
-            c if c == '*' => tokens.push(Token::Operator(Operator::Multiplication)),
-            c if c == '/' => tokens.push(Token::Operator(Operator::Division)),
-            c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
-            c if c == '%' => tokens.push(Token::Operator(Operator::Modulus)),
-            c if c == '(' => tokens.push(Token::Left),
-            c if c == ')' => tokens.push(Token::Right),
-            c if c == ',' => tokens.push(Token::Comma),
-            c if c == 'π' => tokens.push(Token::Number(PI)),
+            '+' => tokens.push(Token::Operator(Operator::Addition)),
+            '-' | '−' => {
+                if let Some(Token::Operator(_)) = tokens.last() {
+                    is_negative = Some(pos + 1);
+                } else if tokens.last().is_none() {
+                    is_negative = Some(pos + 1);
+                } else {
+                    tokens.push(Token::Operator(Operator::Subtraction));
+                }
+            }
+            '*' | '×' => tokens.push(Token::Operator(Operator::Multiplication)),
+            '/' | '÷' => tokens.push(Token::Operator(Operator::Division)),
+            '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
+            '%' => tokens.push(Token::Operator(Operator::Modulus)),
+            '(' => tokens.push(Token::Left),
+            ')' => tokens.push(Token::Right),
+            ',' => tokens.push(Token::Comma),
+            'π' => tokens.push(Token::Number(PI)),
             c if c.is_numeric() => {
                 let (remaining, number) = parse_number(&input[pos..])?;
-                tokens.push(number);
+                if is_negative == Some(pos) {
+                    if let Token::Number(num) = number {
+                        tokens.push(Token::Number(-num));
+                    }
+                } else {
+                    tokens.push(number);
+                }
                 parse(remaining, tokens)?;
                 return Ok(());
             }
@@ -169,11 +184,11 @@ mod tests {
     #[test]
     fn negative_number() {
         let expected = vec![
+            //token_operator!(Operator::Subtraction),
+            token_number!(-5.0),
             token_operator!(Operator::Subtraction),
-            token_number!(5.0),
-            token_operator!(Operator::Subtraction),
-            token_operator!(Operator::Subtraction),
-            token_number!(10.0),
+            //token_operator!(Operator::Subtraction),
+            token_number!(-10.0),
         ];
         let actual = get_tokens("-5 - -10");
         assert_eq!(expected, actual.unwrap());
@@ -205,6 +220,27 @@ mod tests {
             Token::Right,
         ];
         let actual = get_tokens("sin ((1.5 + 5) * 2) - 76 * (sin(5) + 5)");
+        assert_eq!(expected, actual.unwrap());
+    }
+
+    #[test]
+    fn nested_functions() {
+        let expected = vec![
+            Token::Func(Function::Sin),
+            Token::Left,
+            Token::Func(Function::Max),
+            Token::Left,
+            Token::Number(2.0),
+            Token::Comma,
+            Token::Number(3.0),
+            Token::Right,
+            Token::Operator(Operator::Division),
+            Token::Number(3.0),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(PI),
+            Token::Right,
+        ];
+        let actual = get_tokens("sin ( max ( 2, 3 ) ÷ 3 × π )");
         assert_eq!(expected, actual.unwrap());
     }
 }

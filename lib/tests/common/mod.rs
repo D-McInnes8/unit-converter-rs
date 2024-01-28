@@ -1,3 +1,4 @@
+use simple_logger::SimpleLogger;
 use unitconvert::converter::builder::UnitConverterBuilder;
 use unitconvert::converter::UnitConverter;
 use unitconvert::source::toml::conversions::BaseConversionsSourceToml;
@@ -21,4 +22,11 @@ pub fn setup() -> UnitConverter {
         .add_base_conversions(conversions)
         .build()
         .unwrap()
+}
+
+pub fn setup_test_logger() {
+    let result = SimpleLogger::new().init();
+    if result.is_err() {
+        eprintln!("Error initialising logger");
+    }
 }
