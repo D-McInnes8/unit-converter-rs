@@ -45,8 +45,8 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
     for (pos, c) in input.char_indices() {
         match c {
             c if c.is_whitespace() => {}
-            c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
-            c if c == '-' || c == '−' => {
+            '+' => tokens.push(Token::Operator(Operator::Addition)),
+            '-' | '−' => {
                 if let Some(Token::Operator(_)) = tokens.last() {
                     is_negative = Some(pos + 1);
                 } else if tokens.last() == None {
@@ -55,14 +55,14 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
                     tokens.push(Token::Operator(Operator::Subtraction));
                 }
             }
-            c if c == '*' || c == '×' => tokens.push(Token::Operator(Operator::Multiplication)),
-            c if c == '/' || c == '÷' => tokens.push(Token::Operator(Operator::Division)),
-            c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
-            c if c == '%' => tokens.push(Token::Operator(Operator::Modulus)),
-            c if c == '(' => tokens.push(Token::Left),
-            c if c == ')' => tokens.push(Token::Right),
-            c if c == ',' => tokens.push(Token::Comma),
-            c if c == 'π' => tokens.push(Token::Number(PI)),
+            '*' | '×' => tokens.push(Token::Operator(Operator::Multiplication)),
+            '/' | '÷' => tokens.push(Token::Operator(Operator::Division)),
+            '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
+            '%' => tokens.push(Token::Operator(Operator::Modulus)),
+            '(' => tokens.push(Token::Left),
+            ')' => tokens.push(Token::Right),
+            ',' => tokens.push(Token::Comma),
+            'π' => tokens.push(Token::Number(PI)),
             c if c.is_numeric() => {
                 let (remaining, number) = parse_number(&input[pos..])?;
                 if is_negative == Some(pos) {
