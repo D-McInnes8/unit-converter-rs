@@ -40,7 +40,7 @@ pub fn get_tokens(input: &str) -> Result<Vec<Token>, ParseError> {
     Ok(results)
 }
 
-fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> {
+fn parse(input: &str, tokens: &mut Vec<Token>) -> Result<(), ParseError> {
     let mut is_negative: Option<usize> = None;
     for (pos, c) in input.char_indices() {
         match c {
@@ -49,7 +49,7 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             '-' | '−' => {
                 if let Some(Token::Operator(_)) = tokens.last() {
                     is_negative = Some(pos + 1);
-                } else if tokens.last() == None {
+                } else if tokens.last().is_none() {
                     is_negative = Some(pos + 1);
                 } else {
                     tokens.push(Token::Operator(Operator::Subtraction));

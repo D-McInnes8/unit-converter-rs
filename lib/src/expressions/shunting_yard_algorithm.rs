@@ -59,7 +59,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
 fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
     let mut result = None;
     for param in params {
-        let ev = eval_ast(&param);
+        let ev = eval_ast(param);
         if let Some(n) = result {
             if ev > n {
                 result = Some(ev);
@@ -74,7 +74,7 @@ fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
 fn min(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
     let mut result = None;
     for param in params {
-        let ev = eval_ast(&param);
+        let ev = eval_ast(param);
         if let Some(n) = result {
             if ev < n {
                 result = Some(ev);
@@ -148,9 +148,7 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
 fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
     debug!("Popping operator {:?} from stack to output queue", token);
     trace!("{} items in output queue {:?}", output.len(), output);
-    if token == Token::Left {
-        return;
-    } else if let Token::Number(num) = token {
+    if let Token::Number(num) = token {
         output.push(AbstractSyntaxTreeNode::Number(num));
     } else if let Token::Func(func) = token {
         let mut params = vec![];
@@ -161,21 +159,21 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
             };
         }
 
-        if params.len() > 1 {
-            output.push(AbstractSyntaxTreeNode::FunctionParams { func, params })
-        } else if params.len() == 1 {
-            output.push(AbstractSyntaxTreeNode::FunctionExpression {
+        match params.len() {
+            2.. => output.push(AbstractSyntaxTreeNode::FunctionParams { func, params }),
+            1 => output.push(AbstractSyntaxTreeNode::FunctionExpression {
                 func,
                 expr: Box::new(params.remove(0)),
-            })
-        } else {
-            if let Some(expr) = output.pop() {
-                output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                    func,
-                    expr: Box::new(expr),
-                })
-            } else {
-                unreachable!();
+            }),
+            _ => {
+                if let Some(expr) = output.pop() {
+                    output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                        func,
+                        expr: Box::new(expr),
+                    })
+                } else {
+                    unreachable!();
+                }
             }
         }
     } else if let Token::Operator(operator) = token {
@@ -204,23 +202,18 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                 stack.push(token);
             }
             Token::Operator(o1) => {
-                loop {
-                    if let Some(o2) = stack.last() {
-                        match *o2 {
-                            Token::Operator(o2)
-                                if (o2.prec() > o1.prec())
-                                    || (o2.prec() == o1.prec()
-                                        && o1.assoc() == Associativity::Left) =>
-                            {
-                                pop_to_output_queue(stack.pop().unwrap(), &mut output);
-                                //output.push(stack.pop().unwrap();
-                            }
-                            _ => {
-                                break;
-                            }
+                while let Some(o2) = stack.last() {
+                    match *o2 {
+                        Token::Operator(o2)
+                            if (o2.prec() > o1.prec())
+                                || (o2.prec() == o1.prec()
+                                    && o1.assoc() == Associativity::Left) =>
+                        {
+                            pop_to_output_queue(stack.pop().unwrap(), &mut output);
                         }
-                    } else {
-                        break;
+                        _ => {
+                            break;
+                        }
                     }
                 }
                 stack.push(token);
