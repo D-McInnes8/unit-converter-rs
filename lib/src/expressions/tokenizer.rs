@@ -41,11 +41,20 @@ pub fn get_tokens(input: &str) -> Result<Vec<Token>, ParseError> {
 }
 
 fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> {
+    let mut is_negative: Option<usize> = None;
     for (pos, c) in input.char_indices() {
         match c {
             c if c.is_whitespace() => {}
             c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
-            c if c == '-' || c == '−' => tokens.push(Token::Operator(Operator::Subtraction)),
+            c if c == '-' || c == '−' => {
+                if let Some(Token::Operator(_)) = tokens.last() {
+                    is_negative = Some(pos + 1);
+                } else if tokens.last() == None {
+                    is_negative = Some(pos + 1);
+                } else {
+                    tokens.push(Token::Operator(Operator::Subtraction));
+                }
+            }
             c if c == '*' || c == '×' => tokens.push(Token::Operator(Operator::Multiplication)),
             c if c == '/' || c == '÷' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),
@@ -56,7 +65,13 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
             c if c == 'π' => tokens.push(Token::Number(PI)),
             c if c.is_numeric() => {
                 let (remaining, number) = parse_number(&input[pos..])?;
-                tokens.push(number);
+                if is_negative == Some(pos) {
+                    if let Token::Number(num) = number {
+                        tokens.push(Token::Number(-num));
+                    }
+                } else {
+                    tokens.push(number);
+                }
                 parse(remaining, tokens)?;
                 return Ok(());
             }
@@ -169,11 +184,11 @@ mod tests {
     #[test]
     fn negative_number() {
         let expected = vec![
+            //token_operator!(Operator::Subtraction),
+            token_number!(-5.0),
             token_operator!(Operator::Subtraction),
-            token_number!(5.0),
-            token_operator!(Operator::Subtraction),
-            token_operator!(Operator::Subtraction),
-            token_number!(10.0),
+            //token_operator!(Operator::Subtraction),
+            token_number!(-10.0),
         ];
         let actual = get_tokens("-5 - -10");
         assert_eq!(expected, actual.unwrap());
