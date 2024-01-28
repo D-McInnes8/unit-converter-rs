@@ -1,8 +1,6 @@
 use std::ops::Deref;
 
-use log::{debug, error, info, trace};
-
-use crate::expressions::expression::FunctionValue;
+use log::{debug, error, trace};
 
 use super::error::ExpressionError;
 use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
@@ -32,7 +30,6 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
             );
             result
         }
-        AbstractSyntaxTreeNode::Function { func, value } => 5.0,
         AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
             let expr_result = eval_ast(expr);
             let result = match func {
@@ -165,39 +162,22 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
         }
 
         if params.len() > 1 {
-            output.push(AbstractSyntaxTreeNode::FunctionParams {
-                func: func,
-                params: params,
-            })
+            output.push(AbstractSyntaxTreeNode::FunctionParams { func, params })
         } else if params.len() == 1 {
             output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                func: func,
+                func,
                 expr: Box::new(params.remove(0)),
             })
         } else {
             if let Some(expr) = output.pop() {
                 output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                    func: func,
+                    func,
                     expr: Box::new(expr),
                 })
             } else {
                 unreachable!();
             }
         }
-
-        /*if output.len() > 1 {
-            let mut params = vec![];
-            while let Some(param) = output.pop() {
-                params.push(param);
-            }
-            output.push(AbstractSyntaxTreeNode::FunctionParams { func, params })
-        } else {
-            let top = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
-            output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                func,
-                expr: top.unwrap(),
-            });
-        }*/
     } else if let Token::Operator(operator) = token {
         let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
         let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
@@ -262,7 +242,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                     if *top == Token::Left {
                         _ = stack.pop();
 
-                        if let Some(Token::Func(func)) = stack.last() {
+                        if let Some(Token::Func(_)) = stack.last() {
                             pop_to_output_queue(stack.pop().unwrap(), &mut output);
                         }
 
@@ -300,7 +280,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
 
 #[cfg(test)]
 mod tests {
-    use crate::expressions::expression::{Function, FunctionValue, Operator};
+    use crate::expressions::expression::{Function, Operator};
     use crate::expressions::tokenizer::get_tokens;
 
     use super::*;
@@ -420,9 +400,6 @@ mod tests {
         };
         let actual = shunting_yard(tokens).expect("");
 
-        eprintln!("Expected: {}", expected);
-        eprintln!("Actual: {}", actual);
-
         assert_eq!(expected, actual);
     }
 
@@ -496,16 +473,6 @@ mod tests {
             }),
         };
 
-        let expected2: Vec<Token> = vec![
-            Token::Number(2.0),
-            Token::Number(3.0),
-            Token::Func(Function::Max),
-            Token::Number(3.0),
-            Token::Operator(Operator::Division),
-            Token::Number(1.0),
-            Token::Operator(Operator::Multiplication),
-            Token::Func(Function::Sin),
-        ];
         let actual = shunting_yard(tokens).expect("");
         assert_eq!(expected, actual);
     }
