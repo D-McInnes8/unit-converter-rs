@@ -1,4 +1,4 @@
-use self::common::setup;
+use self::common::{setup, setup_test_logger};
 use test_case::test_case;
 
 mod common;
@@ -14,6 +14,7 @@ mod common;
 #[test_case("87pm -> nm",        0.087000000000000001 ; "picometers to nanometers")]
 #[test_case("1ly -> km",         9460730472580.0      ; "light-years to kilometers")]
 pub fn length_conversion(input: &str, expected: f64) {
+    setup_test_logger();
     let mut converter = setup();
 
     // Run each test case twice to ensure that any caching doesn't alter the result.

@@ -1,5 +1,7 @@
 use std::ops::Deref;
 
+use log::{debug, error, info, trace};
+
 use crate::expressions::expression::FunctionValue;
 
 use super::error::ExpressionError;
@@ -24,7 +26,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
                 Operator::Modulus => left_r % right_r,
                 Operator::Exponentiation => left_r.powf(right_r),
             };
-            eprintln!(
+            debug!(
                 "Operation: {} {} {} = {}",
                 left_r, operator, right_r, result
             );
@@ -39,7 +41,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
                 Function::Tan => expr_result.tan(),
                 _ => unreachable!(),
             };
-            eprintln!(
+            debug!(
                 "Applying Function {:?} ({:?}) = {}",
                 func, expr_result, result
             );
@@ -51,7 +53,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
                 Function::Min => min(params).unwrap(),
                 _ => unreachable!(),
             };
-            eprintln!("Applying Function {:?} ({:?}) = {}", func, params, result);
+            debug!("Applying Function {:?} ({:?}) = {}", func, params, result);
             result
         }
     }
@@ -147,9 +149,8 @@ pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
 }
 
 fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
-    eprintln!("Token: {:?}", token);
-    eprintln!("Output: {:?}", output);
-    eprintln!();
+    debug!("Popping operator {:?} from stack to output queue", token);
+    trace!("{} items in output queue {:?}", output.len(), output);
     if token == Token::Left {
         return;
     } else if let Token::Number(num) = token {
@@ -210,13 +211,11 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
 }
 
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, ExpressionError> {
-    eprintln!("Tokens: {:?}", tokens);
-
     let mut output = Vec::with_capacity(tokens.len());
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
-        eprintln!("Analyising token: {:?}", token);
+        debug!("Analyising token {:?}", token);
         match token {
             Token::Number(num) => {
                 output.push(AbstractSyntaxTreeNode::Number(num));
@@ -286,6 +285,12 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
     }
 
     if output.len() > 1 {
+        error!(
+            "Output queue contains {} items. Should only contain 1",
+            output.len()
+        );
+        debug!("{:?}", output);
+        debug!("\n{}", output[1]);
         return Err(ExpressionError::new(
             "Output queue contains more than 1 item",
         ));

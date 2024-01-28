@@ -45,7 +45,7 @@ fn parse<'a>(input: &str, tokens: &'a mut Vec<Token>) -> Result<(), ParseError> 
         match c {
             c if c.is_whitespace() => {}
             c if c == '+' => tokens.push(Token::Operator(Operator::Addition)),
-            c if c == '-' => tokens.push(Token::Operator(Operator::Subtraction)),
+            c if c == '-' || c == '−' => tokens.push(Token::Operator(Operator::Subtraction)),
             c if c == '*' || c == '×' => tokens.push(Token::Operator(Operator::Multiplication)),
             c if c == '/' || c == '÷' => tokens.push(Token::Operator(Operator::Division)),
             c if c == '^' => tokens.push(Token::Operator(Operator::Exponentiation)),

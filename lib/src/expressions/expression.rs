@@ -2,6 +2,8 @@
 use std::fmt::Display;
 use std::ops::Deref;
 
+use log::{info, trace};
+
 use super::error::ExpressionError;
 use super::shunting_yard_algorithm::{eval_ast, eval_rpn, shunting_yard};
 use super::tokenizer::get_tokens;
@@ -225,20 +227,14 @@ pub enum Function {
 }
 
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
-    eprintln!();
-    eprintln!("Expression: {}", input);
-    eprintln!();
-    eprintln!();
+    info!("Parsing expression {}", input);
 
     let tokens = get_tokens(input)?;
-    let ast = shunting_yard(tokens)?;
+    info!("Parsed {} tokens from expression", tokens.len());
+    trace!("{:?}", tokens);
 
-    eprintln!();
-    eprintln!();
-    eprintln!("AST:\n {}", ast);
-    eprintln!();
-    eprintln!("{:?}", ast);
-    eprintln!();
+    let ast = shunting_yard(tokens)?;
+    info!("Generating abstract syntax tree");
 
     Ok(eval_ast(&ast))
 }
