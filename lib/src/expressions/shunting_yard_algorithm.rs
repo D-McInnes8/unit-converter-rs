@@ -2,6 +2,8 @@ use std::ops::Deref;
 
 use log::{debug, error, trace};
 
+use crate::expressions::functions::{max, min};
+
 use super::error::ExpressionError;
 use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 use super::tokenizer::Token;
@@ -54,36 +56,6 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
             result
         }
     }
-}
-
-fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
-    let mut result = None;
-    for param in params {
-        let ev = eval_ast(param);
-        if let Some(n) = result {
-            if ev > n {
-                result = Some(ev);
-            }
-        } else {
-            result = Some(ev);
-        }
-    }
-    result
-}
-
-fn min(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
-    let mut result = None;
-    for param in params {
-        let ev = eval_ast(param);
-        if let Some(n) = result {
-            if ev < n {
-                result = Some(ev);
-            }
-        } else {
-            result = Some(ev);
-        }
-    }
-    result
 }
 
 pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
