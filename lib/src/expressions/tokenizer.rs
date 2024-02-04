@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use super::error::ParseError;
 use super::expression::{Function, Operator};
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+/*#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Token {
     Operator(Operator),
     Func(Function),
@@ -243,4 +243,4 @@ mod tests {
         let actual = get_tokens("sin ( max ( 2, 3 ) ÷ 3 × π )");
         assert_eq!(expected, actual.unwrap());
     }
-}
+}*/

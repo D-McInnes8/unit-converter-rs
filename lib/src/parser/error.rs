@@ -1,6 +1,8 @@
 use core::fmt;
 use std::error::Error;
 
+use crate::expressions::error::ExpressionError;
+
 #[derive(Debug, Default)]
 pub struct ParseError {
     source: Option<Box<dyn Error + 'static>>,
@@ -18,6 +20,12 @@ impl ParseError {
     }
 }
 
+impl Error for ParseError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        None
+    }
+}
+
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(source) = &self.source {
@@ -28,6 +36,15 @@ impl fmt::Display for ParseError {
             Some(err) => err,
             None => "An unknown error has occurred",
         };
-        write!(f, "{}", error_message)
+        write!(f, "{} ({:?})", error_message, self.token)
+    }
+}
+
+impl From<ParseError> for ExpressionError {
+    fn from(value: ParseError) -> Self {
+        //let message = value
+        //    .message
+        //    .unwrap_or(String::from("An unknown error has occurred"));
+        ExpressionError::new(&format!("{}", value))
     }
 }

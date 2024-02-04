@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use log::{debug, warn};
 
 use crate::converter::error::ConversionError;
-use crate::expressions::expression::Function;
+use crate::expressions::expression::{Function, Operator};
 
 use super::error::ParseError;
 
@@ -19,20 +19,9 @@ pub enum Token {
     Parameter(String),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum Operator {
-    Addition,
-    Subtraction,
-    Multiplication,
-    Division,
-    Exponentiation,
-    Modulus,
-    Conversion,
-}
-
 pub fn parse(input: &str) -> Result<Vec<Token>, ParseError> {
     let mut r = vec![];
-    tokenizer(input, &mut r);
+    tokenizer(input, &mut r)?;
     Ok(r)
 }
 
@@ -54,7 +43,7 @@ fn tokenizer(input: &str, result: &mut Vec<Token>) -> Result<(), ParseError> {
         let (token, new_pos) = match c {
             c if c.is_whitespace() => continue,
             '{' => param(&input[pos..])?,
-            c if c.is_operator() => operator(&input[pos..])?,
+            c if c.is_operator() => operator(&input[pos..], result.last())?,
             c if c.is_numeric() => number(&input[pos..])?,
             c if c.is_alphabetic() => identifier(&input[pos..])?,
             _ => {
@@ -67,7 +56,7 @@ fn tokenizer(input: &str, result: &mut Vec<Token>) -> Result<(), ParseError> {
         };
 
         result.push(token);
-        tokenizer(&input[pos + new_pos..], result);
+        tokenizer(&input[pos + new_pos..], result)?;
         return Ok(());
     }
 
@@ -151,20 +140,29 @@ fn param(input: &str) -> Result<(Token, usize), ParseError> {
     Ok((Token::Parameter(token.to_owned()), end_pos))
 }
 
-fn operator(input: &str) -> Result<(Token, usize), ParseError> {
+fn operator(input: &str, prev: Option<&Token>) -> Result<(Token, usize), ParseError> {
     let mut end_pos: usize = input.len();
+    let mut chars = input.char_indices().peekable();
 
-    for (pos, c) in input.char_indices() {
-        if !c.is_operator() {
-            end_pos = pos;
-            break;
+    if let Some((pos, c)) = chars.next() {
+        if c == '-' {
+            if let Some((next_pos, _)) = chars.next_if(|&(_, n)| n == '>') {
+                end_pos = next_pos + 1;
+            } else {
+                end_pos = pos + 1;
+            }
+        } else {
+            end_pos = pos + 1;
+            while !input.is_char_boundary(end_pos) {
+                end_pos += 1;
+            }
         }
     }
 
     let token = &input[0..end_pos];
     let operator = match token {
         "+" => Token::Operator(Operator::Addition),
-        "-" => Token::Operator(Operator::Subtraction),
+        "-" | "−" => Token::Operator(Operator::Subtraction),
         "*" | "×" => Token::Operator(Operator::Multiplication),
         "/" | "÷" => Token::Operator(Operator::Division),
         "^" => Token::Operator(Operator::Exponentiation),
@@ -181,6 +179,16 @@ fn operator(input: &str) -> Result<(Token, usize), ParseError> {
         }
     };
 
+    // Convert unary operators into a special time so they're easier to evalute.
+    if operator == Token::Operator(Operator::Subtraction) {
+        match prev {
+            None | Some(Token::Left) | Some(Token::Operator(_)) => {
+                return Ok((Token::Operator(Operator::Negative), end_pos))
+            }
+            _ => (),
+        }
+    }
+
     Ok((operator, end_pos))
 }
 
@@ -191,7 +199,9 @@ pub trait IsOperator {
 impl IsOperator for char {
     fn is_operator(&self) -> bool {
         match self {
-            '+' | '-' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π' => true,
+            '+' | '-' | '−' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π' => {
+                true
+            }
             _ => false,
         }
     }
@@ -211,6 +221,18 @@ mod tests {
             Token::Number(10.0),
         ];
         let actual = parse("5 + 10");
+        assert_eq!(expected, actual.unwrap());
+    }
+
+    #[test]
+    fn multibyte_unicode_character() {
+        let expected = vec![
+            Token::Number(5.0),
+            Token::Operator(Operator::Division),
+            Token::Operator(Operator::Negative),
+            Token::Number(10.0),
+        ];
+        let actual = parse("5÷-10");
         assert_eq!(expected, actual.unwrap());
     }
 
@@ -242,13 +264,28 @@ mod tests {
     #[test]
     fn negative_number() {
         let expected = vec![
-            Token::Operator(Operator::Subtraction),
+            Token::Operator(Operator::Negative),
             Token::Number(5.0),
             Token::Operator(Operator::Subtraction),
-            Token::Operator(Operator::Subtraction),
+            Token::Operator(Operator::Negative),
             Token::Number(10.0),
         ];
         let actual = parse("-5 - -10");
+        assert_eq!(expected, actual.unwrap());
+    }
+
+    #[test]
+    fn unary_expression_with_function() {
+        let expected = vec![
+            Token::Operator(Operator::Negative),
+            Token::Func(Function::Max),
+            Token::Left,
+            Token::Number(5.3),
+            Token::Comma,
+            Token::Number(3.0),
+            Token::Right,
+        ];
+        let actual = parse("-max(5.3, 3)");
         assert_eq!(expected, actual.unwrap());
     }
 

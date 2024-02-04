@@ -18,6 +18,9 @@ mod common;
 #[test_case("10 + 2^5",                      42.0                               ; "exponential_operator_with_addition")]
 #[test_case("2^(10 - 2) % 10",               6.0                                ; "exponential_operator_with_parenthesis")]
 #[test_case("(0.3456 + 0.766) * 120.763",    134.2401508                        ; "decimal_numbers")]
+#[test_case("-max(5.3, 3)",                  -5.3                               ; "unary_operator_function")]
+#[test_case("-2^4",                          -16.0                              ; "unary_with_exponential_operator")]
+#[test_case("2*-(1+2)^-(2+5*-(2+4))",        -45753584909922.0                  ; "unary_complex_equation" )]
 pub fn expression_no_parameters(exp: &str, expected: f64) {
     setup_test_logger();
     let actual = eval(exp);

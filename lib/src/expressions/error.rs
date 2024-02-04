@@ -51,6 +51,13 @@ impl ExpressionError {
             message: message.to_owned(),
         }
     }
+
+    pub fn from_source(message: &str, source: impl Error + 'static) -> ExpressionError {
+        ExpressionError {
+            source: Some(Box::new(source)),
+            message: message.to_owned(),
+        }
+    }
 }
 
 impl fmt::Display for ExpressionError {

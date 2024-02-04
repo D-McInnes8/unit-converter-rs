@@ -2,9 +2,10 @@ use std::fmt::Display;
 
 use log::{info, trace};
 
+use crate::parser::tokenizer::parse;
+
 use super::error::ExpressionError;
 use super::shunting_yard_algorithm::{eval_ast, shunting_yard};
-use super::tokenizer::get_tokens;
 
 #[derive(Debug, PartialEq)]
 pub enum AbstractSyntaxTreeNode {
@@ -13,6 +14,10 @@ pub enum AbstractSyntaxTreeNode {
         operator: Operator,
         left: Option<Box<AbstractSyntaxTreeNode>>,
         right: Option<Box<AbstractSyntaxTreeNode>>,
+    },
+    UnaryExpression {
+        operator: Operator,
+        value: Box<AbstractSyntaxTreeNode>,
     },
     FunctionExpression {
         func: Function,
@@ -59,6 +64,15 @@ fn fmt_ast_node(
             )?;
             fmt_ast_node(
                 right.as_ref().unwrap(),
+                f,
+                children_prefix.clone() + "└── ",
+                children_prefix.clone() + "    ",
+            )
+        }
+        AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
+            writeln!(f, "{:?}", operator)?;
+            fmt_ast_node(
+                value,
                 f,
                 children_prefix.clone() + "└── ",
                 children_prefix.clone() + "    ",
@@ -112,6 +126,8 @@ pub enum Operator {
     Division,
     Exponentiation,
     Modulus,
+    Conversion,
+    Negative,
 }
 
 impl Display for Operator {
@@ -123,6 +139,8 @@ impl Display for Operator {
             Operator::Division => write!(f, "/"),
             Operator::Exponentiation => write!(f, "^"),
             Operator::Modulus => write!(f, "%"),
+            Operator::Conversion => write!(f, "->"),
+            Operator::Negative => write!(f, "-"),
         }
     }
 }
@@ -140,16 +158,18 @@ impl Operator {
             | Operator::Subtraction
             | Operator::Multiplication
             | Operator::Division
-            | Operator::Modulus => Associativity::Left,
-            Operator::Exponentiation => Associativity::Right,
+            | Operator::Modulus
+            | Operator::Conversion => Associativity::Left,
+            Operator::Exponentiation | Operator::Negative => Associativity::Right,
         }
     }
 
     pub const fn prec(self) -> u32 {
         match self {
+            Operator::Conversion => 1,
             Operator::Addition | Operator::Subtraction => 2,
             Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
-            Operator::Exponentiation => 4,
+            Operator::Exponentiation | Operator::Negative => 4,
         }
     }
 }
@@ -166,12 +186,14 @@ pub enum Function {
 pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     info!("Parsing expression {}", input);
 
-    let tokens = get_tokens(input)?;
+    //let tokens = get_tokens(input)?;
+    let tokens = parse(input)?;
     info!("Parsed {} tokens from expression", tokens.len());
     trace!("{:?}", tokens);
 
     let ast = shunting_yard(tokens)?;
     info!("Generating abstract syntax tree");
+    trace!("\n{}", ast);
 
     Ok(eval_ast(&ast))
 }

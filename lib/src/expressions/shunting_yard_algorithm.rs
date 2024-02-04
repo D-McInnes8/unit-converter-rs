@@ -3,10 +3,10 @@ use std::ops::Deref;
 use log::{debug, error, trace};
 
 use crate::expressions::functions::{max, min};
+use crate::parser::tokenizer::Token;
 
 use super::error::ExpressionError;
 use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
-use super::tokenizer::Token;
 
 pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
     match node {
@@ -25,12 +25,18 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
                 Operator::Division => left_r / right_r,
                 Operator::Modulus => left_r % right_r,
                 Operator::Exponentiation => left_r.powf(right_r),
+                Operator::Conversion => left_r + right_r,
+                _ => unreachable!(),
             };
             debug!(
                 "Operation: {} {} {} = {}",
                 left_r, operator, right_r, result
             );
             result
+        }
+        AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
+            let val_r = eval_ast(value.as_ref());
+            -val_r
         }
         AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
             let expr_result = eval_ast(expr);
@@ -58,105 +64,62 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
     }
 }
 
-pub fn eval_rpn(tokens: Vec<Token>) -> Result<f64, ExpressionError> {
-    let mut stack = Vec::with_capacity(tokens.len());
-
-    eprintln!("Tokens: {:?}", &tokens);
-
-    for token in &tokens {
-        if let Token::Number(n) = token {
-            stack.push(*n);
-            continue;
-        }
-
-        let right = stack.pop();
-        let left = stack.pop();
-
-        eprintln!("Right: {:?}, Left: {:?}", right, left);
-
-        match (left, right) {
-            (Some(a), Some(b)) => {
-                let result = match token {
-                    Token::Operator(Operator::Addition) => a + b,
-                    Token::Operator(Operator::Subtraction) => a - b,
-                    Token::Operator(Operator::Multiplication) => a * b,
-                    Token::Operator(Operator::Division) => a / b,
-                    Token::Operator(Operator::Exponentiation) => a.powf(b),
-                    Token::Operator(Operator::Modulus) => a % b,
-                    Token::Func(func) => {
-                        eprintln!("Func: {:?}", func);
-                        eprintln!("Right: {:?}", right);
-                        eprintln!("Left: {:?}", left);
-                        eprintln!("Output: {:?}", &tokens);
-                        unreachable!();
-                    }
-                    _ => unreachable!(),
-                };
-                stack.push(result.to_owned());
-            }
-            (None, Some(b)) => {
-                if let Token::Func(func) = token {
-                    let result = match func {
-                        Function::Sin => b.sin(),
-                        Function::Cos => b.cos(),
-                        Function::Tan => b.tan(),
-                        _ => return Ok(b),
-                    };
-                    stack.push(result.to_owned());
-                } else {
-                    return Ok(b);
-                }
-            }
-            (None, None) | (Some(_), None) => unreachable!(),
-        }
-    }
-
-    stack.pop().map_or_else(
-        || Err(ExpressionError::new("An unknown error has occured")),
-        Ok,
-    )
-}
-
 fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
     debug!("Popping operator {:?} from stack to output queue", token);
     trace!("{} items in output queue {:?}", output.len(), output);
-    if let Token::Number(num) = token {
-        output.push(AbstractSyntaxTreeNode::Number(num));
-    } else if let Token::Func(func) = token {
-        let mut params = vec![];
-        while let Some(param) = output.last() {
-            match param {
-                AbstractSyntaxTreeNode::Number(_) => params.push(output.pop().unwrap()),
-                _ => break,
-            };
-        }
 
-        match params.len() {
-            2.. => output.push(AbstractSyntaxTreeNode::FunctionParams { func, params }),
-            1 => output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                func,
-                expr: Box::new(params.remove(0)),
-            }),
-            _ => {
-                if let Some(expr) = output.pop() {
-                    output.push(AbstractSyntaxTreeNode::FunctionExpression {
-                        func,
-                        expr: Box::new(expr),
-                    })
-                } else {
-                    unreachable!();
+    match token {
+        Token::Number(num) => {
+            output.push(AbstractSyntaxTreeNode::Number(num));
+        }
+        Token::Func(func) => {
+            let mut params = vec![];
+            while let Some(param) = output.last() {
+                match param {
+                    AbstractSyntaxTreeNode::Number(_) => params.push(output.pop().unwrap()),
+                    _ => break,
+                };
+            }
+
+            match params.len() {
+                2.. => output.push(AbstractSyntaxTreeNode::FunctionParams { func, params }),
+                1 => output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                    func,
+                    expr: Box::new(params.remove(0)),
+                }),
+                0 => {
+                    if let Some(expr) = output.pop() {
+                        output.push(AbstractSyntaxTreeNode::FunctionExpression {
+                            func,
+                            expr: Box::new(expr),
+                        })
+                    }
                 }
             }
         }
-    } else if let Token::Operator(operator) = token {
-        let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
-        let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
+        Token::Operator(Operator::Negative) => {
+            if let Some(val) = output.pop() {
+                output.push(AbstractSyntaxTreeNode::UnaryExpression {
+                    operator: Operator::Negative,
+                    value: Box::new(val),
+                });
+            }
+        }
+        Token::Operator(operator) => {
+            let right = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
+            let left = output.pop().map_or_else(|| None, |a| Some(Box::new(a)));
 
-        output.push(AbstractSyntaxTreeNode::BinaryExpression {
-            operator,
-            left,
-            right,
-        })
+            debug!(
+                "Generating binary expression {:?} {} {:?}",
+                left, operator, right
+            );
+            output.push(AbstractSyntaxTreeNode::BinaryExpression {
+                operator,
+                left,
+                right,
+            })
+        }
+        _ => {}
     }
 }
 
@@ -219,6 +182,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                     return Err(ExpressionError::new("Mismatched parentheses"));
                 }
             },
+            _ => {}
         };
     }
 
@@ -246,7 +210,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
 #[cfg(test)]
 mod tests {
     use crate::expressions::expression::{Function, Operator};
-    use crate::expressions::tokenizer::get_tokens;
+    use crate::parser::tokenizer::parse;
 
     use super::*;
 
@@ -257,7 +221,7 @@ mod tests {
             left: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
             right: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
         };
-        let tokens = get_tokens("5 + 10").unwrap();
+        let tokens = parse("5 + 10").unwrap();
         let actual = shunting_yard(tokens).unwrap();
 
         assert_eq!(expected, actual);

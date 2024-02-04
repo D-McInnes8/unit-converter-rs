@@ -8,8 +8,8 @@ use nom::{
 
 use crate::converter::{error::ConversionError, UnitConversion};
 
-mod error;
-mod tokenizer;
+pub mod error;
+pub mod tokenizer;
 
 #[derive(Debug, Clone)]
 pub struct UnitAbbreviation {
