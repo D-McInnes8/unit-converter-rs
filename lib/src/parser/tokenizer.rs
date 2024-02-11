@@ -19,6 +19,53 @@ pub enum Token {
     Parameter(String),
 }
 
+pub struct Tokenizer {
+    cursor: usize,
+    input: Vec<char>,
+}
+
+impl Tokenizer {
+    pub fn new(input: &str) -> Self {
+        Self {
+            cursor: 0,
+            input: input.chars().collect(),
+        }
+    }
+
+    pub fn cursor(&self) -> usize {
+        self.cursor
+    }
+
+    pub fn peek(&self) -> Option<&char> {
+        self.input.get(self.cursor)
+    }
+
+    pub fn prev(&self) -> Option<&char> {
+        self.input.get(self.cursor - 1)
+    }
+
+    pub fn pop(&mut self) -> Option<&char> {
+        self.input.get(self.cursor).inspect(|_| self.cursor += 1)
+        /*let a = self.input.get(self.cursor).inspect(|x| self.cursor += 1);
+
+        match self.input.get(self.cursor) {
+            Some(c) => {
+                self.cursor += 1;
+                Some(c)
+            }
+            None => None,
+        }*/
+    }
+
+    pub fn take(&mut self, expr: &str) -> Option<&str> {
+        None
+    }
+
+    pub fn seek(&mut self, c: impl Fn(&str) -> Option<Token>) -> Option<Token> {
+        None
+    }
+}
+
 pub fn parse(input: &str) -> Result<Vec<Token>, ParseError> {
     let mut r = vec![];
     tokenizer(input, &mut r)?;
@@ -88,7 +135,18 @@ fn number(input: &str) -> Result<(Token, usize), ParseError> {
     Ok((Token::Number(num), end_pos))
 }
 
+fn assignment(input: &str) -> Result<(Token, usize), ParseError> {
+    let x = &input[3..];
+    for (pos, c) in input.char_indices() {}
+
+    return Ok((Token::Operator(Operator::Assignment), 0));
+}
+
 fn identifier(input: &str) -> Result<(Token, usize), ParseError> {
+    if input.starts_with("let") {
+        return assignment(input);
+    }
+
     let mut end_pos: usize = input.len();
 
     for (pos, c) in input.char_indices() {
@@ -212,6 +270,25 @@ mod tests {
     use std::f64::consts::PI;
 
     use super::*;
+
+    #[test]
+    fn tokenizer() {
+        let mut tokenizer = Tokenizer::new("5÷-10");
+
+        tokenizer.seek(|symbol| match symbol {
+            "+" => Some(Token::Operator(Operator::Addition)),
+            "-" | "−" => Some(Token::Operator(Operator::Subtraction)),
+            "*" => Some(Token::Operator(Operator::Multiplication)),
+            "/" => Some(Token::Operator(Operator::Division)),
+            "^" => Some(Token::Operator(Operator::Exponentiation)),
+            _ => None,
+        });
+
+        for c in tokenizer.input {
+            eprintln!("char {}", c);
+        }
+        assert_eq!(tokenizer.cursor, 5);
+    }
 
     #[test]
     fn operation() {
@@ -417,4 +494,17 @@ mod tests {
         let actual = parse(input).unwrap();
         assert_eq!(expected, actual);
     }
+
+    /*#[test]
+    fn assign_expression_to_variable() {
+        let expected = vec![
+            Token::Parameter(String::from("a")),
+            Token::Operator(Operator::Assignment),
+            Token::Number(5.0),
+            Token::Operator(Operator::Addition),
+            Token::Number(5.0),
+        ];
+        let actual = parse("let a = 5 + 5").expect("");
+        assert_eq!(expected, actual);
+    }*/
 }

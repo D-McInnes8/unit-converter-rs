@@ -128,6 +128,7 @@ pub enum Operator {
     Modulus,
     Conversion,
     Negative,
+    Assignment,
 }
 
 impl Display for Operator {
@@ -141,6 +142,7 @@ impl Display for Operator {
             Operator::Modulus => write!(f, "%"),
             Operator::Conversion => write!(f, "->"),
             Operator::Negative => write!(f, "-"),
+            Operator::Assignment => write!(f, "="),
         }
     }
 }
@@ -160,12 +162,15 @@ impl Operator {
             | Operator::Division
             | Operator::Modulus
             | Operator::Conversion => Associativity::Left,
-            Operator::Exponentiation | Operator::Negative => Associativity::Right,
+            Operator::Exponentiation | Operator::Negative | Operator::Assignment => {
+                Associativity::Right
+            }
         }
     }
 
     pub const fn prec(self) -> u32 {
         match self {
+            Operator::Assignment => 0,
             Operator::Conversion => 1,
             Operator::Addition | Operator::Subtraction => 2,
             Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
