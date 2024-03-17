@@ -1,5 +1,6 @@
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
+use expr::AbstractSyntaxTreeNode;
 use log::{error, info, warn};
 
 use self::builder::UnitConverterBuilder;
@@ -7,6 +8,11 @@ use self::error::ConversionError;
 
 pub mod builder;
 pub mod error;
+
+pub enum Conversion {
+    Multiplier(f64),
+    Expression(AbstractSyntaxTreeNode),
+}
 
 pub struct UnitConverter {
     graph: Vec<Graph<String, f64>>,
