@@ -5,8 +5,9 @@ use unitconvert::source::toml::conversions::BaseConversionsSourceToml;
 use unitconvert::source::toml::units::UnitDefinitionSourceToml;
 
 pub fn setup() -> UnitConverter {
-    let unit_definitions_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../Units.toml");
-    let default_converions_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../Base_Conversions.toml");
+    let unit_definitions_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../Units.toml");
+    let default_converions_path =
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../../Base_Conversions.toml");
 
     let conversions = BaseConversionsSourceToml::new(default_converions_path)
         .load()
