@@ -2,7 +2,6 @@ use std::f64::consts::PI;
 
 use log::{debug, warn};
 
-use crate::converter::error::ConversionError;
 use crate::expressions::expression::{Function, Operator};
 
 use super::error::ParseError;
@@ -105,7 +104,7 @@ fn identifier(input: &str) -> Result<(Token, usize), ParseError> {
         return Err(ParseError::new(
             "Identifier is not a valid function or unit of measurement",
             token,
-            None as Option<ConversionError>,
+            None as Option<ParseError>,
         ));
     }
 }
@@ -174,7 +173,7 @@ fn operator(input: &str, prev: Option<&Token>) -> Result<(Token, usize), ParseEr
             return Err(ParseError::new(
                 "Token is not a valid operator",
                 token,
-                None as Option<ConversionError>,
+                None as Option<ParseError>,
             ))
         }
     };
