@@ -43,12 +43,16 @@ pub fn e_notation(input: &str, expected: f64) {
     }
 }
 
-/*#[test_case("20C -> F",          68.0                 ; "celsius_to_fahrenheit")]
-#[test_case("100F -> C",         37.7778              ; "fahrenheit_to_celsius")]
+#[test_case("20C -> F",          68.0                 ; "celsius to fahrenheit")]
+#[test_case("20C -> K",          293.15               ; "celsius to kelvin")]
+#[test_case("100F -> C",         37.7778              ; "fahrenheit to celsius")]
+#[test_case("100F -> K",         310.928              ; "fahrenheit to kelvin")]
+#[test_case("300K -> C",         26.85                ; "kelvin to celsius")]
+#[test_case("300K -> F",         80.33                ; "kelvin to fahrenheit")]
 pub fn temperature_conversion(input: &str, expected: f64) {
     let mut converter = setup();
     let actual = converter.convert_from_expression(input);
 
     assert!(actual.is_ok(), "Returned error {:?}", actual.err());
-    assert_eq!(expected, actual.unwrap());
-}*/
+    assert_eq!(expected, actual.unwrap().value);
+}

@@ -29,3 +29,8 @@ Kiloliters = ['kl']
 Liters = ['l']
 Centiliters = ['cl']
 Millimeters = ['ml']
+
+[Temperature]
+Celsius = ['C']
+Kelvin = ['K']
+Fahrenheit = ['F']

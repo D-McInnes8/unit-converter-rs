@@ -14,3 +14,6 @@ NauticalMiles = { Meters = 1852 }
 
 [Weight]
 Kilograms = { Grams = 1000 }
+
+[Temperature]
+Celsius = { Kelvin = 100, Fahrenheit = 100 }
