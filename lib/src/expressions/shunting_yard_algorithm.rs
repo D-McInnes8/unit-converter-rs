@@ -61,10 +61,15 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
             debug!("Applying Function {:?} ({:?}) = {}", func, params, result);
             result
         }
+        AbstractSyntaxTreeNode::BinaryConversion { from, to, expr } => unreachable!(),
     }
 }
 
-fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
+fn pop_to_output_queue(
+    token: Token,
+    output: &mut Vec<AbstractSyntaxTreeNode>,
+    units: &mut Vec<String>,
+) {
     debug!("Popping operator {:?} from stack to output queue", token);
     trace!("{} items in output queue {:?}", output.len(), output);
 
@@ -113,11 +118,27 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
                 "Generating binary expression {:?} {} {:?}",
                 left, operator, right
             );
-            output.push(AbstractSyntaxTreeNode::BinaryExpression {
-                operator,
-                left,
-                right,
-            })
+            if operator == Operator::Conversion {
+                let unit_right = units.pop();
+                let unit_left = units.pop();
+                units.push(unit_right.clone().unwrap());
+                /*debug!(
+                    "Binary Conversion {:?} {:?} -> {:?} {:?}",
+                    left, unit_left, right, unit_right
+                );*/
+                debug!("Conversion {:?} -> {:?}", unit_left, unit_right);
+                output.push(AbstractSyntaxTreeNode::BinaryConversion {
+                    from: unit_left.unwrap(),
+                    to: unit_right.unwrap(),
+                    expr: right,
+                });
+            } else {
+                output.push(AbstractSyntaxTreeNode::BinaryExpression {
+                    operator,
+                    left,
+                    right,
+                });
+            }
         }
         _ => {}
     }
@@ -126,6 +147,7 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
 pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, ExpressionError> {
     let mut output = Vec::with_capacity(tokens.len());
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
+    let mut units: Vec<String> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
         debug!("Analyising token {:?}", token);
@@ -144,7 +166,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                                 || (o2.prec() == o1.prec()
                                     && o1.assoc() == Associativity::Left) =>
                         {
-                            pop_to_output_queue(stack.pop().unwrap(), &mut output);
+                            pop_to_output_queue(stack.pop().unwrap(), &mut output, &mut units);
                         }
                         _ => {
                             break;
@@ -156,7 +178,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
             Token::Comma => {
                 while let Some(top) = stack.last() {
                     if *top != Token::Left {
-                        pop_to_output_queue(stack.pop().unwrap(), &mut output);
+                        pop_to_output_queue(stack.pop().unwrap(), &mut output, &mut units);
                     } else {
                         break;
                     }
@@ -171,17 +193,20 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                         _ = stack.pop();
 
                         if let Some(Token::Func(_)) = stack.last() {
-                            pop_to_output_queue(stack.pop().unwrap(), &mut output);
+                            pop_to_output_queue(stack.pop().unwrap(), &mut output, &mut units);
                         }
 
                         break;
                     }
 
-                    pop_to_output_queue(stack.pop().unwrap(), &mut output);
+                    pop_to_output_queue(stack.pop().unwrap(), &mut output, &mut units);
                 } else {
                     return Err(ExpressionError::new("Mismatched parentheses"));
                 }
             },
+            Token::Unit(unit) => {
+                units.push(unit);
+            }
             _ => {}
         };
     }
@@ -190,7 +215,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
         if operator == Token::Left || operator == Token::Right {
             return Err(ExpressionError::new("Mismatched parentheses"));
         }
-        pop_to_output_queue(operator, &mut output);
+        pop_to_output_queue(operator, &mut output, &mut units);
     }
 
     if output.len() > 1 {
@@ -209,6 +234,8 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
 
 #[cfg(test)]
 mod tests {
+    use simple_logger::SimpleLogger;
+
     use crate::expressions::expression::{Function, Operator};
     use crate::parser::tokenizer::parse;
 
@@ -403,6 +430,66 @@ mod tests {
         };
 
         let actual = shunting_yard(tokens).expect("");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn conversions() {
+        SimpleLogger::new().init().unwrap();
+        let tokens: Vec<Token> = vec![
+            Token::Number(5.0),
+            Token::Unit(String::from("Kilometers")),
+            Token::Operator(Operator::Conversion),
+            Token::Unit(String::from("Meters")),
+        ];
+
+        let expected = AbstractSyntaxTreeNode::BinaryConversion {
+            from: String::from("Kilometers"),
+            to: String::from("Meters"),
+            expr: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
+        };
+        let actual = shunting_yard(tokens).expect("");
+
+        eprintln!();
+        eprintln!("AST:");
+        eprintln!("{}", actual);
+
+        eprintln!();
+        eprintln!("AST (Debug):");
+        eprintln!("{:?}", actual);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn multiple_conversions() {
+        let tokens = vec![
+            Token::Number(2.5),
+            Token::Unit(String::from("Kilometers")),
+            Token::Operator(Operator::Conversion),
+            Token::Unit(String::from("NatuicalMiles")),
+            Token::Operator(Operator::Addition),
+            Token::Number(10.0),
+            Token::Operator(Operator::Conversion),
+            Token::Unit(String::from("Lightyears")),
+        ];
+        let expected = AbstractSyntaxTreeNode::BinaryConversion {
+            from: String::from("NatuicalMiles"),
+            to: String::from("Lightyears"),
+            expr: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Addition,
+                left: Some(Box::new(AbstractSyntaxTreeNode::Number(10.0))),
+                right: Some(Box::new(AbstractSyntaxTreeNode::BinaryConversion {
+                    from: String::from("Kilometers"),
+                    to: String::from("NatuicalMiles"),
+                    expr: Some(Box::new(AbstractSyntaxTreeNode::Number(2.5))),
+                })),
+            })),
+        };
+
+        let actual = shunting_yard(tokens).expect("");
+        eprintln!("AST:");
+        eprintln!("{}", actual);
         assert_eq!(expected, actual);
     }
 }

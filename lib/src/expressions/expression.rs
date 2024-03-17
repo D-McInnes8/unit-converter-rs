@@ -27,6 +27,11 @@ pub enum AbstractSyntaxTreeNode {
         func: Function,
         params: Vec<AbstractSyntaxTreeNode>,
     },
+    BinaryConversion {
+        from: String,
+        to: String,
+        expr: Option<Box<AbstractSyntaxTreeNode>>,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -108,6 +113,15 @@ fn fmt_ast_node(
             }
             write!(f, "")
         }
+        AbstractSyntaxTreeNode::BinaryConversion { from, to, expr } => {
+            writeln!(f, "{} -> {}", from, to)?;
+            fmt_ast_node(
+                expr.as_ref().unwrap(),
+                f,
+                children_prefix.clone() + "└── ",
+                children_prefix.clone() + "    ",
+            )
+        }
     }
 }
 
@@ -166,7 +180,7 @@ impl Operator {
 
     pub const fn prec(self) -> u32 {
         match self {
-            Operator::Conversion => 1,
+            Operator::Conversion => 5,
             Operator::Addition | Operator::Subtraction => 2,
             Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
             Operator::Exponentiation | Operator::Negative => 4,
