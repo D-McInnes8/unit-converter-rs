@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use log::{debug, warn};
 
-use crate::expressions::expression::{Function, Operator};
+use crate::{Function, Operator};
 
 use super::error::ParseError;
 

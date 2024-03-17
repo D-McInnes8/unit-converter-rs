@@ -1,5 +1,5 @@
 use self::common::setup_test_logger;
-use expr::expressions::expression::eval;
+use expr::eval;
 use test_case::test_case;
 mod common;
 

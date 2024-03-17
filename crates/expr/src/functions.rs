@@ -1,4 +1,5 @@
-use super::expression::AbstractSyntaxTreeNode;
+use crate::AbstractSyntaxTreeNode;
+
 use super::shunting_yard_algorithm::eval_ast;
 
 pub fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {

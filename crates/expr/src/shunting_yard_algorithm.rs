@@ -2,11 +2,11 @@ use std::ops::Deref;
 
 use log::{debug, error, trace};
 
-use crate::expressions::functions::{max, min};
+use crate::functions::{max, min};
 use crate::parser::tokenizer::Token;
+use crate::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 
 use super::error::ExpressionError;
-use super::expression::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
 
 pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
     match node {
@@ -209,7 +209,6 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
 
 #[cfg(test)]
 mod tests {
-    use crate::expressions::expression::{Function, Operator};
     use crate::parser::tokenizer::parse;
 
     use super::*;

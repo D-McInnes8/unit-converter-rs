@@ -1,7 +1,7 @@
 use core::fmt;
 use std::error::Error;
 
-use crate::expressions::error::ExpressionError;
+use crate::error::ExpressionError;
 
 #[derive(Debug, Default)]
 pub struct ParseError {
