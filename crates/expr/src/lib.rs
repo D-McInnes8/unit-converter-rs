@@ -2,12 +2,14 @@ use std::fmt::Display;
 
 use log::{info, trace};
 
+use crate::expression::{Expression, ExpressionContext};
 use crate::parser::tokenizer::parse;
 use crate::shunting_yard_algorithm::{eval_ast, shunting_yard};
 
 use self::error::ExpressionError;
 
 pub mod error;
+pub mod expression;
 mod functions;
 pub mod parser;
 mod shunting_yard_algorithm;
@@ -15,6 +17,7 @@ mod shunting_yard_algorithm;
 #[derive(Debug, PartialEq)]
 pub enum AbstractSyntaxTreeNode {
     Number(f64),
+    Variable(String),
     BinaryExpression {
         operator: Operator,
         left: Option<Box<AbstractSyntaxTreeNode>>,
@@ -55,6 +58,7 @@ fn fmt_ast_node(
     write!(f, "{}", prefix)?;
     match node {
         AbstractSyntaxTreeNode::Number(num) => writeln!(f, "{}", num),
+        AbstractSyntaxTreeNode::Variable(var) => writeln!(f, "{}", var),
         AbstractSyntaxTreeNode::BinaryExpression {
             operator,
             left,
@@ -131,7 +135,6 @@ pub enum Operator {
     Division,
     Exponentiation,
     Modulus,
-    Conversion,
     Negative,
 }
 
@@ -144,7 +147,6 @@ impl Display for Operator {
             Operator::Division => write!(f, "/"),
             Operator::Exponentiation => write!(f, "^"),
             Operator::Modulus => write!(f, "%"),
-            Operator::Conversion => write!(f, "->"),
             Operator::Negative => write!(f, "-"),
         }
     }
@@ -163,15 +165,13 @@ impl Operator {
             | Operator::Subtraction
             | Operator::Multiplication
             | Operator::Division
-            | Operator::Modulus
-            | Operator::Conversion => Associativity::Left,
+            | Operator::Modulus => Associativity::Left,
             Operator::Exponentiation | Operator::Negative => Associativity::Right,
         }
     }
 
     pub const fn prec(self) -> u32 {
         match self {
-            Operator::Conversion => 1,
             Operator::Addition | Operator::Subtraction => 2,
             Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
             Operator::Exponentiation | Operator::Negative => 4,
@@ -200,5 +200,6 @@ pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     info!("Generating abstract syntax tree");
     trace!("\n{}", ast);
 
-    Ok(eval_ast(&ast))
+    let ctx = ExpressionContext::new();
+    Ok(eval_ast(&ast, &ctx))
 }

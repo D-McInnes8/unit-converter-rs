@@ -1,11 +1,12 @@
+use crate::expression::ExpressionContext;
 use crate::AbstractSyntaxTreeNode;
 
 use super::shunting_yard_algorithm::eval_ast;
 
-pub fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
+pub fn max(params: &Vec<AbstractSyntaxTreeNode>, ctx: &ExpressionContext) -> Option<f64> {
     let mut result = None;
     for param in params {
-        let ev = eval_ast(param);
+        let ev = eval_ast(param, ctx);
         if let Some(n) = result {
             if ev > n {
                 result = Some(ev);
@@ -17,10 +18,10 @@ pub fn max(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
     result
 }
 
-pub fn min(params: &Vec<AbstractSyntaxTreeNode>) -> Option<f64> {
+pub fn min(params: &Vec<AbstractSyntaxTreeNode>, ctx: &ExpressionContext) -> Option<f64> {
     let mut result = None;
     for param in params {
-        let ev = eval_ast(param);
+        let ev = eval_ast(param, ctx);
         if let Some(n) = result {
             if ev < n {
                 result = Some(ev);

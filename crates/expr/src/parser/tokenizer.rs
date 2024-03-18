@@ -14,7 +14,6 @@ pub enum Token {
     Left,
     Right,
     Comma,
-    Unit(String),
     Parameter(String),
 }
 
@@ -41,7 +40,6 @@ fn tokenizer(input: &str, result: &mut Vec<Token>) -> Result<(), ParseError> {
 
         let (token, new_pos) = match c {
             c if c.is_whitespace() => continue,
-            '{' => param(&input[pos..])?,
             c if c.is_operator() => operator(&input[pos..], result.last())?,
             c if c.is_numeric() => number(&input[pos..])?,
             c if c.is_alphabetic() => identifier(&input[pos..])?,
@@ -98,7 +96,7 @@ fn identifier(input: &str) -> Result<(Token, usize), ParseError> {
     }
 
     let token = &input[0..end_pos];
-    if let Some(token) = func(token).or_else(|| unit(token)) {
+    if let Some(token) = func(token).or_else(|| param(token)) {
         return Ok((token, end_pos));
     } else {
         return Err(ParseError::new(
@@ -116,27 +114,12 @@ fn func(input: &str) -> Option<Token> {
         "sin" => Some(Token::Func(Function::Sin)),
         "cos" => Some(Token::Func(Function::Cos)),
         "tan" => Some(Token::Func(Function::Tan)),
-        "to" => Some(Token::Operator(Operator::Conversion)),
         _ => None,
     }
 }
 
-fn unit(input: &str) -> Option<Token> {
-    Some(Token::Unit(input.to_owned()))
-}
-
-fn param(input: &str) -> Result<(Token, usize), ParseError> {
-    let mut end_pos: usize = input.len();
-
-    for (pos, c) in input.char_indices() {
-        if c == '}' {
-            end_pos = pos;
-            break;
-        }
-    }
-
-    let token = &input[1..end_pos];
-    Ok((Token::Parameter(token.to_owned()), end_pos))
+fn param(input: &str) -> Option<Token> {
+    Some(Token::Parameter(input.to_owned()))
 }
 
 fn operator(input: &str, prev: Option<&Token>) -> Result<(Token, usize), ParseError> {
@@ -168,7 +151,6 @@ fn operator(input: &str, prev: Option<&Token>) -> Result<(Token, usize), ParseEr
         "%" => Token::Operator(Operator::Modulus),
         "," => Token::Comma,
         "π" => Token::Number(PI),
-        "->" => Token::Operator(Operator::Conversion),
         _ => {
             return Err(ParseError::new(
                 "Token is not a valid operator",
@@ -209,6 +191,7 @@ impl IsOperator for char {
 #[cfg(test)]
 mod tests {
     use std::f64::consts::PI;
+    use std::vec;
 
     use super::*;
 
@@ -339,79 +322,35 @@ mod tests {
     }
 
     #[test]
-    fn valid_temperature_conversion() {
-        let input = "20C -> F";
-
-        let expected = vec![
-            Token::Number(20.0),
-            Token::Unit(String::from("C")),
-            Token::Operator(Operator::Conversion),
-            Token::Unit(String::from("F")),
-        ];
-        let actual = parse(input).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    /*#[test]
-    fn conversion_invalid_unit() {
-        let input = "20x -> F";
-
-        let actual = parse(input);
-        assert!(actual.is_err());
-    }*/
-
-    #[test]
-    fn conversion_same_characters_different_case() {
-        let input = "1Mm -> mm";
-
-        let expected = vec![
-            Token::Number(1.0),
-            Token::Unit(String::from("Mm")),
-            Token::Operator(Operator::Conversion),
-            Token::Unit(String::from("mm")),
-        ];
-        let actual = parse(input).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn conversion_e_notation() {
-        let input = "1.079913e9km -> nmi";
-
-        let expected = vec![
-            Token::Number(1079913000.0),
-            Token::Unit(String::from("km")),
-            Token::Operator(Operator::Conversion),
-            Token::Unit(String::from("nmi")),
-        ];
-        let actual = parse(input).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn combined_conversion_and_expression() {
-        let input = "5km + 5 -> m + 10";
-        let expected = vec![
-            Token::Number(5.0),
-            Token::Unit(String::from("km")),
-            Token::Operator(Operator::Addition),
-            Token::Number(5.0),
-            Token::Operator(Operator::Conversion),
-            Token::Unit(String::from("m")),
-            Token::Operator(Operator::Addition),
-            Token::Number(10.0),
-        ];
-        let actual = parse(input).unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn parameter() {
-        let input = "{a} + 5";
+    fn parameter_single_character() {
+        let input = "a + 5";
         let expected = vec![
             Token::Parameter(String::from("a")),
             Token::Operator(Operator::Addition),
             Token::Number(5.0),
+        ];
+        let actual = parse(input).unwrap();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn parameter_multiple_characters() {
+        let input = "param + 5";
+        let expected = vec![
+            Token::Parameter(String::from("param")),
+            Token::Operator(Operator::Addition),
+            Token::Number(5.0),
+        ];
+        let actual = parse(input).unwrap();
+        assert_eq!(expected, actual);
+    }
+    #[test]
+    fn multiple_parameters() {
+        let input = "a+b";
+        let expected = vec![
+            Token::Parameter(String::from("a")),
+            Token::Operator(Operator::Addition),
+            Token::Parameter(String::from("b")),
         ];
         let actual = parse(input).unwrap();
         assert_eq!(expected, actual);

@@ -1,5 +1,6 @@
 use self::common::setup_test_logger;
 use expr::eval;
+use expr::expression::{Expression, ExpressionContext};
 use test_case::test_case;
 mod common;
 
@@ -36,4 +37,16 @@ pub fn invalid_expression(exp: &str) {
     setup_test_logger();
     let actual = eval(exp);
     assert!(actual.is_err(), "Should be err. Returned {:?}", actual);
+}
+
+#[test_case("a + 5.3", 0.0, 5.3 ; "zero")]
+pub fn expression_with_single_variable(input: &str, var: f64, expected: f64) {
+    let expr = Expression::new(input).expect("");
+
+    let mut ctx = ExpressionContext::new();
+    ctx.var("a", var);
+
+    let actual = expr.eval_with_ctx(&ctx);
+    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
+    assert_eq!(expected, actual.unwrap());
 }
