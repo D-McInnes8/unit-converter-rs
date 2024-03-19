@@ -2,22 +2,30 @@ use std::ops::Deref;
 
 use log::{debug, error, trace};
 
+use crate::ast::AbstractSyntaxTreeNode;
+use crate::expression::ExpressionContext;
 use crate::functions::{max, min};
 use crate::parser::tokenizer::Token;
-use crate::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
+use crate::{Associativity, Function, Operator};
 
 use super::error::ExpressionError;
 
-pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
+pub fn eval_ast(node: &AbstractSyntaxTreeNode, ctx: &impl ExpressionContext) -> f64 {
     match node {
         AbstractSyntaxTreeNode::Number(num) => num.to_owned(),
+        AbstractSyntaxTreeNode::Variable(var) => {
+            // TODO: Rewrite this code once this function returns a Result type.
+            let v = ctx.get(var);
+            assert!(v.is_some());
+            v.unwrap()
+        }
         AbstractSyntaxTreeNode::BinaryExpression {
             operator,
             left,
             right,
         } => {
-            let left_r = eval_ast(left.as_ref().unwrap().deref());
-            let right_r = eval_ast(right.as_ref().unwrap().deref());
+            let left_r = eval_ast(left.as_ref().unwrap().deref(), ctx);
+            let right_r = eval_ast(right.as_ref().unwrap().deref(), ctx);
             let result = match operator {
                 Operator::Addition => left_r + right_r,
                 Operator::Subtraction => left_r - right_r,
@@ -25,7 +33,6 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
                 Operator::Division => left_r / right_r,
                 Operator::Modulus => left_r % right_r,
                 Operator::Exponentiation => left_r.powf(right_r),
-                Operator::Conversion => left_r + right_r,
                 _ => unreachable!(),
             };
             debug!(
@@ -35,11 +42,11 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
             result
         }
         AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
-            let val_r = eval_ast(value.as_ref());
+            let val_r = eval_ast(value.as_ref(), ctx);
             -val_r
         }
         AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
-            let expr_result = eval_ast(expr);
+            let expr_result = eval_ast(expr, ctx);
             let result = match func {
                 Function::Sin => expr_result.sin(),
                 Function::Cos => expr_result.cos(),
@@ -54,8 +61,8 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode) -> f64 {
         }
         AbstractSyntaxTreeNode::FunctionParams { func, params } => {
             let result = match func {
-                Function::Max => max(params).unwrap(),
-                Function::Min => min(params).unwrap(),
+                Function::Max => max(params, ctx).unwrap(),
+                Function::Min => min(params, ctx).unwrap(),
                 _ => unreachable!(),
             };
             debug!("Applying Function {:?} ({:?}) = {}", func, params, result);
@@ -72,11 +79,15 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
         Token::Number(num) => {
             output.push(AbstractSyntaxTreeNode::Number(num));
         }
+        Token::Parameter(var) => {
+            output.push(AbstractSyntaxTreeNode::Variable(var));
+        }
         Token::Func(func) => {
             let mut params = vec![];
             while let Some(param) = output.last() {
                 match param {
                     AbstractSyntaxTreeNode::Number(_) => params.push(output.pop().unwrap()),
+                    AbstractSyntaxTreeNode::Variable(_) => params.push(output.pop().unwrap()),
                     _ => break,
                 };
             }
@@ -133,6 +144,9 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
             Token::Number(num) => {
                 output.push(AbstractSyntaxTreeNode::Number(num));
             }
+            Token::Parameter(var) => {
+                output.push(AbstractSyntaxTreeNode::Variable(var));
+            }
             Token::Func(_) => {
                 stack.push(token);
             }
@@ -182,7 +196,6 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                     return Err(ExpressionError::new("Mismatched parentheses"));
                 }
             },
-            _ => {}
         };
     }
 
@@ -399,6 +412,42 @@ mod tests {
                 })),
                 right: Some(Box::new(AbstractSyntaxTreeNode::Number(1.0))),
             }),
+        };
+
+        let actual = shunting_yard(tokens).expect("");
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn parameters() {
+        let tokens: Vec<Token> = vec![
+            Token::Parameter(String::from("a")),
+            Token::Operator(Operator::Addition),
+            Token::Number(5.0),
+            Token::Operator(Operator::Subtraction),
+            Token::Left,
+            Token::Parameter(String::from("b")),
+            Token::Operator(Operator::Multiplication),
+            Token::Number(2.0),
+            Token::Right,
+        ];
+
+        let expected = AbstractSyntaxTreeNode::BinaryExpression {
+            operator: Operator::Subtraction,
+            left: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Addition,
+                left: Some(Box::new(AbstractSyntaxTreeNode::Variable(String::from(
+                    "a",
+                )))),
+                right: Some(Box::new(AbstractSyntaxTreeNode::Number(5.0))),
+            })),
+            right: Some(Box::new(AbstractSyntaxTreeNode::BinaryExpression {
+                operator: Operator::Multiplication,
+                left: Some(Box::new(AbstractSyntaxTreeNode::Variable(String::from(
+                    "b",
+                )))),
+                right: Some(Box::new(AbstractSyntaxTreeNode::Number(2.0))),
+            })),
         };
 
         let actual = shunting_yard(tokens).expect("");

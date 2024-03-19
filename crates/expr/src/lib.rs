@@ -2,126 +2,18 @@ use std::fmt::Display;
 
 use log::{info, trace};
 
+use crate::expression::{ExpressionContext, InMemoryExpressionContext};
 use crate::parser::tokenizer::parse;
 use crate::shunting_yard_algorithm::{eval_ast, shunting_yard};
 
 use self::error::ExpressionError;
 
+mod ast;
 pub mod error;
+pub mod expression;
 mod functions;
 pub mod parser;
 mod shunting_yard_algorithm;
-
-#[derive(Debug, PartialEq)]
-pub enum AbstractSyntaxTreeNode {
-    Number(f64),
-    BinaryExpression {
-        operator: Operator,
-        left: Option<Box<AbstractSyntaxTreeNode>>,
-        right: Option<Box<AbstractSyntaxTreeNode>>,
-    },
-    UnaryExpression {
-        operator: Operator,
-        value: Box<AbstractSyntaxTreeNode>,
-    },
-    FunctionExpression {
-        func: Function,
-        expr: Box<AbstractSyntaxTreeNode>,
-    },
-    FunctionParams {
-        func: Function,
-        params: Vec<AbstractSyntaxTreeNode>,
-    },
-}
-
-#[derive(Debug, PartialEq)]
-pub enum FunctionValue {
-    Expression(Box<AbstractSyntaxTreeNode>),
-    List(Vec<Box<AbstractSyntaxTreeNode>>),
-}
-
-impl Display for AbstractSyntaxTreeNode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        fmt_ast_node(self, f, String::new(), String::new())
-    }
-}
-
-fn fmt_ast_node(
-    node: &AbstractSyntaxTreeNode,
-    f: &mut std::fmt::Formatter<'_>,
-    prefix: String,
-    children_prefix: String,
-) -> std::fmt::Result {
-    write!(f, "{}", prefix)?;
-    match node {
-        AbstractSyntaxTreeNode::Number(num) => writeln!(f, "{}", num),
-        AbstractSyntaxTreeNode::BinaryExpression {
-            operator,
-            left,
-            right,
-        } => {
-            writeln!(f, "{:?}", operator)?;
-            fmt_ast_node(
-                left.as_ref().unwrap(),
-                f,
-                children_prefix.clone() + "├── ",
-                children_prefix.clone() + "│   ",
-            )?;
-            fmt_ast_node(
-                right.as_ref().unwrap(),
-                f,
-                children_prefix.clone() + "└── ",
-                children_prefix.clone() + "    ",
-            )
-        }
-        AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
-            writeln!(f, "{:?}", operator)?;
-            fmt_ast_node(
-                value,
-                f,
-                children_prefix.clone() + "└── ",
-                children_prefix.clone() + "    ",
-            )
-        }
-        AbstractSyntaxTreeNode::FunctionExpression { func, expr } => {
-            writeln!(f, "{:?}", func)?;
-            fmt_ast_node(
-                expr,
-                f,
-                children_prefix.clone() + "└── ",
-                children_prefix.clone() + "    ",
-            )
-        }
-        AbstractSyntaxTreeNode::FunctionParams { func, params } => {
-            writeln!(f, "{:?}", func)?;
-            for (i, param) in params.iter().enumerate() {
-                if i >= params.len() - 1 {
-                    fmt_ast_node(
-                        param,
-                        f,
-                        children_prefix.clone() + "└── ",
-                        children_prefix.clone() + "    ",
-                    )?;
-                } else {
-                    fmt_ast_node(
-                        param,
-                        f,
-                        children_prefix.clone() + "├── ",
-                        children_prefix.clone() + "│   ",
-                    )?;
-                }
-            }
-            write!(f, "")
-        }
-    }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum OperationType {
-    Number(f64),
-    BinaryExpression { operator: Operator },
-    Function { name: Function, value: f64 },
-}
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operator {
@@ -131,7 +23,6 @@ pub enum Operator {
     Division,
     Exponentiation,
     Modulus,
-    Conversion,
     Negative,
 }
 
@@ -144,7 +35,6 @@ impl Display for Operator {
             Operator::Division => write!(f, "/"),
             Operator::Exponentiation => write!(f, "^"),
             Operator::Modulus => write!(f, "%"),
-            Operator::Conversion => write!(f, "->"),
             Operator::Negative => write!(f, "-"),
         }
     }
@@ -163,15 +53,13 @@ impl Operator {
             | Operator::Subtraction
             | Operator::Multiplication
             | Operator::Division
-            | Operator::Modulus
-            | Operator::Conversion => Associativity::Left,
+            | Operator::Modulus => Associativity::Left,
             Operator::Exponentiation | Operator::Negative => Associativity::Right,
         }
     }
 
     pub const fn prec(self) -> u32 {
         match self {
-            Operator::Conversion => 1,
             Operator::Addition | Operator::Subtraction => 2,
             Operator::Multiplication | Operator::Division | Operator::Modulus => 3,
             Operator::Exponentiation | Operator::Negative => 4,
@@ -200,5 +88,6 @@ pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     info!("Generating abstract syntax tree");
     trace!("\n{}", ast);
 
-    Ok(eval_ast(&ast))
+    let ctx = InMemoryExpressionContext::new();
+    Ok(eval_ast(&ast, &ctx))
 }
