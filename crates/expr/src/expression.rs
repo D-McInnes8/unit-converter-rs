@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
+use crate::ast::AbstractSyntaxTreeNode;
 use crate::error::ExpressionError;
 use crate::parser::tokenizer::parse;
 use crate::shunting_yard_algorithm::{eval_ast, shunting_yard};
-use crate::AbstractSyntaxTreeNode;
 
 pub struct Expression {
     ast: AbstractSyntaxTreeNode,

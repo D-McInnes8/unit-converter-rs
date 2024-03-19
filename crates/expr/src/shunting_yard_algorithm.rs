@@ -2,10 +2,11 @@ use std::ops::Deref;
 
 use log::{debug, error, trace};
 
+use crate::ast::AbstractSyntaxTreeNode;
 use crate::expression::ExpressionContext;
 use crate::functions::{max, min};
 use crate::parser::tokenizer::Token;
-use crate::{AbstractSyntaxTreeNode, Associativity, Function, Operator};
+use crate::{Associativity, Function, Operator};
 
 use super::error::ExpressionError;
 
@@ -193,7 +194,6 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
                     return Err(ExpressionError::new("Mismatched parentheses"));
                 }
             },
-            _ => {}
         };
     }
 
