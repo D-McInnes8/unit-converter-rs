@@ -10,12 +10,14 @@ use crate::{Associativity, Function, Operator};
 
 use super::error::ExpressionError;
 
-pub fn eval_ast(node: &AbstractSyntaxTreeNode, ctx: &ExpressionContext) -> f64 {
+pub fn eval_ast(node: &AbstractSyntaxTreeNode, ctx: &impl ExpressionContext) -> f64 {
     match node {
         AbstractSyntaxTreeNode::Number(num) => num.to_owned(),
         AbstractSyntaxTreeNode::Variable(var) => {
-            assert!(ctx.vars.contains_key(var));
-            ctx.vars[var]
+            // TODO: Rewrite this code once this function returns a Result type.
+            let v = ctx.get(var);
+            assert!(v.is_some());
+            v.unwrap()
         }
         AbstractSyntaxTreeNode::BinaryExpression {
             operator,

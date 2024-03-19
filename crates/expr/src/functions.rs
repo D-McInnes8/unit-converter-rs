@@ -3,7 +3,7 @@ use crate::expression::ExpressionContext;
 
 use super::shunting_yard_algorithm::eval_ast;
 
-pub fn max(params: &Vec<AbstractSyntaxTreeNode>, ctx: &ExpressionContext) -> Option<f64> {
+pub fn max(params: &Vec<AbstractSyntaxTreeNode>, ctx: &impl ExpressionContext) -> Option<f64> {
     let mut result = None;
     for param in params {
         let ev = eval_ast(param, ctx);
@@ -18,7 +18,7 @@ pub fn max(params: &Vec<AbstractSyntaxTreeNode>, ctx: &ExpressionContext) -> Opt
     result
 }
 
-pub fn min(params: &Vec<AbstractSyntaxTreeNode>, ctx: &ExpressionContext) -> Option<f64> {
+pub fn min(params: &Vec<AbstractSyntaxTreeNode>, ctx: &impl ExpressionContext) -> Option<f64> {
     let mut result = None;
     for param in params {
         let ev = eval_ast(param, ctx);

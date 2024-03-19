@@ -8,7 +8,7 @@ use crate::shunting_yard_algorithm::{eval_ast, shunting_yard};
 pub struct Expression {
     ast: AbstractSyntaxTreeNode,
     pub expr: String,
-    pub ctx: ExpressionContext,
+    pub ctx: InMemoryExpressionContext,
 }
 
 impl Expression {
@@ -20,7 +20,7 @@ impl Expression {
         Ok(Expression {
             ast,
             expr,
-            ctx: ExpressionContext::new(),
+            ctx: InMemoryExpressionContext::new(),
         })
     }
 
@@ -28,24 +28,34 @@ impl Expression {
         Ok(eval_ast(&self.ast, &self.ctx))
     }
 
-    pub fn eval_with_ctx(&self, ctx: &ExpressionContext) -> Result<f64, ExpressionError> {
+    pub fn eval_with_ctx(&self, ctx: &impl ExpressionContext) -> Result<f64, ExpressionError> {
         Ok(eval_ast(&self.ast, ctx))
     }
 }
 
-pub struct ExpressionContext {
+pub trait ExpressionContext {
+    fn get(&self, name: &str) -> Option<f64>;
+    fn var(&mut self, name: &str, val: f64);
+}
+
+pub struct InMemoryExpressionContext {
     pub vars: HashMap<String, f64>,
 }
 
-impl ExpressionContext {
-    pub fn new() -> ExpressionContext {
-        ExpressionContext {
+impl InMemoryExpressionContext {
+    pub fn new() -> InMemoryExpressionContext {
+        InMemoryExpressionContext {
             vars: HashMap::new(),
         }
     }
+}
 
-    pub fn var(&mut self, name: &str, val: f64) -> &mut ExpressionContext {
+impl ExpressionContext for InMemoryExpressionContext {
+    fn get(&self, name: &str) -> Option<f64> {
+        self.vars.get(name).map(|m| m.to_owned())
+    }
+
+    fn var(&mut self, name: &str, val: f64) {
         self.vars.insert(name.to_owned(), val);
-        self
     }
 }
