@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use log::{debug, info};
 
+use crate::converter::Conversion;
 use crate::graph::Graph;
 use crate::parser::UnitAbbreviation;
 
@@ -82,7 +83,7 @@ impl UnitConverterBuilder {
                 );
                 let n0 = graph.add_node(conversion.from.clone());
                 let n1 = graph.add_node(conversion.to.clone());
-                _ = graph.add_edge(n0, n1, conversion.value);
+                _ = graph.add_edge(n0, n1, Conversion::Multiplier(conversion.value));
 
                 if self.auto_reverse {
                     let reversed = 1.0 / conversion.value;
@@ -90,7 +91,7 @@ impl UnitConverterBuilder {
                         "Adding reversed edge to '{}' graph for {} -> {} (x *= {})",
                         unit_type, &conversion.to, &conversion.from, reversed
                     );
-                    _ = graph.add_edge(n1, n0, reversed);
+                    _ = graph.add_edge(n1, n0, Conversion::Multiplier(reversed));
                 }
 
                 count += 1;

@@ -1,6 +1,6 @@
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
-use expr::AbstractSyntaxTreeNode;
+use expr::expression::Expression;
 use log::{error, info, warn};
 
 use self::builder::UnitConverterBuilder;
@@ -11,11 +11,11 @@ pub mod error;
 
 pub enum Conversion {
     Multiplier(f64),
-    Expression(AbstractSyntaxTreeNode),
+    Expression(Expression),
 }
 
 pub struct UnitConverter {
-    graph: Vec<Graph<String, f64>>,
+    graph: Vec<Graph<String, Conversion>>,
     abbreviations: Vec<UnitAbbreviation>,
     cache: bool,
 }
@@ -34,7 +34,7 @@ impl UnitConverter {
     }
 
     pub fn new(
-        graph: Vec<Graph<String, f64>>,
+        graph: Vec<Graph<String, Conversion>>,
         abbreviations: Vec<UnitAbbreviation>,
         cache: bool,
     ) -> UnitConverter {
@@ -87,14 +87,6 @@ impl UnitConverter {
         to: &str,
         value: f64,
     ) -> Result<f64, ConversionError> {
-        fn calculate_conversion_multiplier(conversions: &Vec<(&String, &f64)>) -> f64 {
-            let mut result = 1.0;
-            for (_, conversion) in conversions {
-                result *= *conversion;
-            }
-            result
-        }
-
         if let Some(graph_index) = self.get_graph_index(unit_type) {
             let n0 = self.graph[graph_index]
                 .get_node_index(from.to_string())
@@ -116,15 +108,29 @@ impl UnitConverter {
                 shortest_path.len()
             );
 
-            let multiplier = calculate_conversion_multiplier(&shortest_path);
+            let mut multiplier = 1.0;
+            let mut any_expr: bool = false;
+            for (_, conversion) in &shortest_path {
+                match conversion {
+                    Conversion::Multiplier(val) => {
+                        multiplier *= val;
+                    }
+                    Conversion::Expression(_) => {
+                        any_expr = true;
+                    }
+                }
+            }
+
+            //let multiplier = calculate_conversion_multiplier(&shortest_path);
             let return_value = value * multiplier;
 
-            if self.cache && shortest_path.len() > 1 {
+            if self.cache && !any_expr && shortest_path.len() > 1 {
                 info!(
                     "Caching conversion between {} and {} using multiplier {}",
                     from, to, multiplier
                 );
-                let cache_result = self.graph[graph_index].add_edge(n0, n1, multiplier);
+                let cache_result =
+                    self.graph[graph_index].add_edge(n0, n1, Conversion::Multiplier(multiplier));
                 if cache_result.is_err() {
                     warn!(
                         "Unable to add edge to graph between nodes {} and {}",

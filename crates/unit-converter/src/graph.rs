@@ -35,8 +35,7 @@ pub enum GraphOperationError {
 
 impl<N, E> Graph<N, E>
 where
-    N: Clone + PartialEq + Debug,
-    E: Copy + Debug,
+    N: PartialEq + Debug,
 {
     pub fn default() -> Graph<N, E> {
         Graph {
