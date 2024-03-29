@@ -17,5 +17,5 @@ Kilograms = { Grams = 1000 }
 
 [Temperature]
 Celsius = { Kelvin = "C + 273.15", Fahrenheit = "C * 9/5 + 32" }
-Fahrenheit = { Celsius = "", Kelvin = "" }
-Kelvin = { Celsius = "", Fahrenheit = "" }
+Fahrenheit = { Celsius = "(F − 32) × 5/9", Kelvin = "(F − 32) × 5/9 + 273.15" }
+Kelvin = { Celsius = "K − 273.15", Fahrenheit = "(K − 273.15) × 9/5 + 32" }
