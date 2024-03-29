@@ -1,7 +1,8 @@
 use crate::graph::Graph;
 use crate::parser::{parse_conversion, UnitAbbreviation};
-use expr::expression::Expression;
-use log::{error, info, warn};
+use expr::expression::ExpressionContext;
+use expr::expression::{Expression, InMemoryExpressionContext};
+use log::{debug, error, info, warn};
 
 use self::builder::UnitConverterBuilder;
 use self::error::ConversionError;
@@ -88,20 +89,15 @@ impl UnitConverter {
         value: f64,
     ) -> Result<f64, ConversionError> {
         if let Some(graph_index) = self.get_graph_index(unit_type) {
-            let n0 = self.graph[graph_index]
-                .get_node_index(from.to_string())
-                .ok_or(ConversionError::new(
-                    format!("Unable to find conversion for unit {}", from).as_str(),
-                ))?;
-
-            let n1 = self.graph[graph_index]
-                .get_node_index(to.to_string())
-                .ok_or(ConversionError::new(
-                    format!("Unable to find conversion for unit {}", to).as_str(),
-                ))?;
+            let n0 = self.get_graph_node_index(graph_index, from)?;
+            let n1 = self.get_graph_node_index(graph_index, to)?;
 
             let shortest_path = self.graph[graph_index].shortest_path(n0, n1);
-            info!(
+            if shortest_path.is_empty() {
+                return Err(ConversionError::new("Unable to find conversion"));
+            }
+
+            debug!(
                 "Converting from {} to {} will require {} operation(s)",
                 from,
                 to,
@@ -115,7 +111,9 @@ impl UnitConverter {
                     Conversion::Multiplier(val) => {
                         multiplier *= val;
                     }
-                    Conversion::Expression(_) => {
+                    Conversion::Expression(expr) => {
+                        let mut ctx = InMemoryExpressionContext::new();
+                        let a = expr.eval_with_ctx(&ctx);
                         any_expr = true;
                     }
                 }
@@ -150,6 +148,18 @@ impl UnitConverter {
 
     pub fn units(&self) -> &Vec<UnitAbbreviation> {
         &self.abbreviations
+    }
+
+    fn get_graph_node_index(
+        &self,
+        graph_index: usize,
+        node: &str,
+    ) -> Result<usize, ConversionError> {
+        self.graph[graph_index]
+            .get_node_index(node.to_string())
+            .ok_or(ConversionError::new(
+                format!("Unable to find definition for unit {}", node).as_str(),
+            ))
     }
 
     fn get_graph_index(&self, category: &str) -> Option<usize> {

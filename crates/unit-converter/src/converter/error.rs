@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::fmt;
 
+use expr::error::ExpressionError;
+
 #[derive(Debug, Default)]
 pub struct ConversionError {
     source: Option<Box<dyn Error>>,
@@ -45,5 +47,11 @@ impl From<std::io::Error> for ConversionError {
 impl From<toml::de::Error> for ConversionError {
     fn from(value: toml::de::Error) -> Self {
         ConversionError::new(value.message())
+    }
+}
+
+impl From<ExpressionError> for ConversionError {
+    fn from(value: ExpressionError) -> Self {
+        ConversionError::new("")
     }
 }

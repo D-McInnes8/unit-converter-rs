@@ -16,4 +16,6 @@ NauticalMiles = { Meters = 1852 }
 Kilograms = { Grams = 1000 }
 
 [Temperature]
-Celsius = { Kelvin = 100, Fahrenheit = 100 }
+Celsius = { Kelvin = "C + 273.15", Fahrenheit = "C * 9/5 + 32" }
+Fahrenheit = { Celsius = "", Kelvin = "" }
+Kelvin = { Celsius = "", Fahrenheit = "" }

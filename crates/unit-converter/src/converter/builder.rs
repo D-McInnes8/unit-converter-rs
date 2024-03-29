@@ -1,17 +1,20 @@
 use std::collections::HashSet;
 
+use expr::expression::Expression;
 use log::{debug, info};
 
 use crate::converter::Conversion;
 use crate::graph::Graph;
 use crate::parser::UnitAbbreviation;
+use crate::ConversionDefinition;
+use crate::ConversionValueDefinition;
 
 use super::error::ConversionError;
 use super::{UnitConversion, UnitConverter};
 
 pub struct UnitConverterBuilder {
     unit_types: HashSet<String>,
-    conversions: Vec<UnitConversion>,
+    conversions: Vec<ConversionDefinition>,
     abbreviations: Vec<UnitAbbreviation>,
     auto_reverse: bool,
     cache: bool,
@@ -46,7 +49,7 @@ impl UnitConverterBuilder {
 
     pub fn add_base_conversions(
         mut self,
-        mut conversions: Vec<UnitConversion>,
+        mut conversions: Vec<ConversionDefinition>,
     ) -> UnitConverterBuilder {
         self.conversions.append(&mut conversions);
         self
@@ -73,25 +76,38 @@ impl UnitConverterBuilder {
             let mut count = 0;
 
             for conversion in &self.conversions {
-                if conversion.unit_type != *unit_type {
+                if conversion.category != *unit_type {
                     continue;
                 }
 
-                debug!(
-                    "Adding edge to '{}' graph for default conversion {} -> {} (x *= {})",
-                    unit_type, &conversion.from, &conversion.to, &conversion.value
-                );
                 let n0 = graph.add_node(conversion.from.clone());
                 let n1 = graph.add_node(conversion.to.clone());
-                _ = graph.add_edge(n0, n1, Conversion::Multiplier(conversion.value));
 
-                if self.auto_reverse {
-                    let reversed = 1.0 / conversion.value;
-                    debug!(
-                        "Adding reversed edge to '{}' graph for {} -> {} (x *= {})",
-                        unit_type, &conversion.to, &conversion.from, reversed
-                    );
-                    _ = graph.add_edge(n1, n0, Conversion::Multiplier(reversed));
+                match &conversion.val {
+                    ConversionValueDefinition::Multiplier(x) => {
+                        debug!(
+                            "Adding edge to '{}' graph for default conversion {} -> {} (x *= {})",
+                            unit_type, &conversion.from, &conversion.to, &conversion.val
+                        );
+                        graph.add_edge(n0, n1, Conversion::Multiplier(*x));
+
+                        if self.auto_reverse {
+                            let reversed = 1.0 / x;
+                            debug!(
+                                "Adding reversed edge to '{}' graph for {} -> {} (x *= {})",
+                                unit_type, &conversion.to, &conversion.from, reversed
+                            );
+                            graph.add_edge(n1, n0, Conversion::Multiplier(reversed));
+                        }
+                    }
+                    ConversionValueDefinition::Expression(e) => {
+                        debug!(
+                            "Adding edge to '{}' graph for default conversion {} -> {} ({})",
+                            unit_type, &conversion.from, &conversion.to, e
+                        );
+                        let expr = Expression::new(e)?;
+                        graph.add_edge(n0, n1, Conversion::Expression(expr));
+                    }
                 }
 
                 count += 1;

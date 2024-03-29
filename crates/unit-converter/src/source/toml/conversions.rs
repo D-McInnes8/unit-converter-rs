@@ -1,8 +1,9 @@
 use log::{debug, info};
 use toml::{Table, Value};
 
-use crate::converter::UnitConversion;
 use crate::source::toml::parse_helper::parse_table;
+use crate::ConversionDefinition;
+use crate::ConversionValueDefinition;
 
 pub struct BaseConversionsSourceToml {
     path: String,
@@ -17,8 +18,7 @@ impl BaseConversionsSourceToml {
 
     pub fn load(
         &self,
-    ) -> Result<Vec<crate::converter::UnitConversion>, crate::converter::error::ConversionError>
-    {
+    ) -> Result<Vec<ConversionDefinition>, crate::converter::error::ConversionError> {
         let contents = std::fs::read_to_string(&self.path)?;
         let config = contents.parse::<Table>()?;
 
@@ -38,11 +38,11 @@ impl BaseConversionsSourceToml {
                     };
 
                     if let Some(num) = f_value {
-                        result.push(UnitConversion {
-                            value: num,
+                        result.push(ConversionDefinition {
+                            val: ConversionValueDefinition::Multiplier(num),
                             from: unit_from.to_owned(),
                             to: unit_to.to_owned(),
-                            unit_type: category.to_owned(),
+                            category: category.to_owned(),
                         });
                     }
                 }
