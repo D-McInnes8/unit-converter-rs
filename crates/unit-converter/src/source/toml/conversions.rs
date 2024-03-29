@@ -31,15 +31,9 @@ impl BaseConversionsSourceToml {
                         category, unit_from, unit_to, value
                     );
 
-                    let f_value = match value {
-                        Value::Float(f) => Some(*f),
-                        Value::Integer(i) => Some(*i as f64),
-                        _ => None,
-                    };
-
-                    if let Some(num) = f_value {
+                    if let Some(c) = match_definition_val(value) {
                         result.push(ConversionDefinition {
-                            val: ConversionValueDefinition::Multiplier(num),
+                            val: c,
                             from: unit_from.to_owned(),
                             to: unit_to.to_owned(),
                             category: category.to_owned(),
@@ -55,5 +49,14 @@ impl BaseConversionsSourceToml {
             &self.path
         );
         Ok(result)
+    }
+}
+
+fn match_definition_val(val: &Value) -> Option<ConversionValueDefinition> {
+    match val {
+        Value::Float(f) => Some(ConversionValueDefinition::Multiplier(*f)),
+        Value::Integer(i) => Some(ConversionValueDefinition::Multiplier(*i as f64)),
+        Value::String(s) => Some(ConversionValueDefinition::Expression(s.to_owned())),
+        _ => None,
     }
 }
