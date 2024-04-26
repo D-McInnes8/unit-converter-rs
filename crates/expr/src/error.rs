@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::fmt;
 
-#[derive(Debug, Default)]
+/*#[derive(Debug, Default)]
 pub struct ParseError {
     source: Option<Box<dyn Error + 'static>>,
     message: Option<String>,
-    token: Option<String>,
+    pub token: String,
 }
 
 impl ParseError {
@@ -13,8 +13,12 @@ impl ParseError {
         ParseError {
             source: source.map(|s| -> Box<dyn Error> { Box::new(s) }),
             message: Some(message.to_owned()),
-            token: Some(token.to_owned()),
+            token: token.to_owned(),
         }
+    }
+
+    pub fn token(&self) -> &str {
+        &self.token
     }
 }
 
@@ -28,6 +32,8 @@ impl fmt::Display for ParseError {
             Some(err) => err,
             None => "An unknown error has occurred",
         };
+
+        write!(f, "Error while parsing token '{}'. ", self.token)?;
         write!(f, "{}", error_message)
     }
 }
@@ -36,7 +42,7 @@ impl Error for ParseError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.source.as_deref()
     }
-}
+}*/
 
 #[derive(Debug, Default)]
 pub struct ExpressionError {
@@ -72,14 +78,5 @@ impl fmt::Display for ExpressionError {
 impl Error for ExpressionError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.source.as_deref()
-    }
-}
-
-impl From<ParseError> for ExpressionError {
-    fn from(value: ParseError) -> Self {
-        ExpressionError {
-            message: String::from("Unable to parse expression."),
-            source: Some(Box::new(value)),
-        }
     }
 }

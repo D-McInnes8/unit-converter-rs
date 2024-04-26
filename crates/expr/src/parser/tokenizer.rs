@@ -100,7 +100,7 @@ fn identifier(input: &str) -> Result<(Token, usize), ParseError> {
         Ok((token, end_pos))
     } else {
         Err(ParseError::new(
-            "Identifier is not a valid function or unit of measurement",
+            "Identifier is not a valid function or parameter.",
             token,
             None as Option<ParseError>,
         ))
@@ -183,12 +183,6 @@ impl IsOperator for char {
             self,
             '+' | '-' | '−' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π'
         )
-        /*match self {
-            '+' | '-' | '−' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π' => {
-                true
-            }
-            _ => false,
-        }*/
     }
 }
 
@@ -196,6 +190,8 @@ impl IsOperator for char {
 mod tests {
     use std::f64::consts::PI;
     use std::vec;
+
+    use log::debug;
 
     use super::*;
 
@@ -348,6 +344,7 @@ mod tests {
         let actual = parse(input).unwrap();
         assert_eq!(expected, actual);
     }
+
     #[test]
     fn multiple_parameters() {
         let input = "a+b";

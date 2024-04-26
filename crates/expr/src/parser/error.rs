@@ -7,7 +7,7 @@ use crate::error::ExpressionError;
 pub struct ParseError {
     source: Option<Box<dyn Error + 'static>>,
     message: Option<String>,
-    token: Option<String>,
+    token: String,
 }
 
 impl ParseError {
@@ -15,8 +15,12 @@ impl ParseError {
         ParseError {
             source: source.map(|s| -> Box<dyn Error> { Box::new(s) }),
             message: Some(message.to_owned()),
-            token: Some(token.to_owned()),
+            token: token.to_owned(),
         }
+    }
+
+    pub fn token(&self) -> &str {
+        &self.token
     }
 }
 
@@ -36,15 +40,16 @@ impl fmt::Display for ParseError {
             Some(err) => err,
             None => "An unknown error has occurred",
         };
-        write!(f, "{} ({:?})", error_message, self.token)
+        write!(
+            f,
+            "Error while parsing token '{}'. {}",
+            self.token, error_message
+        )
     }
 }
 
 impl From<ParseError> for ExpressionError {
     fn from(value: ParseError) -> Self {
-        //let message = value
-        //    .message
-        //    .unwrap_or(String::from("An unknown error has occurred"));
         ExpressionError::new(&format!("{}", value))
     }
 }
