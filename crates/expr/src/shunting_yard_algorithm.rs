@@ -139,7 +139,7 @@ pub fn shunting_yard(tokens: Vec<Token>) -> Result<AbstractSyntaxTreeNode, Expre
     let mut stack: Vec<Token> = Vec::with_capacity(tokens.len());
 
     for token in tokens {
-        debug!("Analyising token {:?}", token);
+        trace!("Analyising token {:?}", token);
         match token {
             Token::Number(num) => {
                 output.push(AbstractSyntaxTreeNode::Number(num));

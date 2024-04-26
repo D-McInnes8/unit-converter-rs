@@ -1,4 +1,4 @@
-use log::{debug, info};
+use log::{info, trace};
 use toml::{Table, Value};
 
 use crate::converter::error::ConversionError;
@@ -24,9 +24,10 @@ impl UnitDefinitionSourceToml {
         let mut result = vec![];
         for (category, units) in &config {
             for (unit, abbreviations) in parse_table(units)? {
-                debug!(
+                trace!(
                     "Loading abbreviations {:?} for unit {}",
-                    &abbreviations, &unit
+                    &abbreviations,
+                    &unit
                 );
 
                 for value in parse_array(abbreviations)? {

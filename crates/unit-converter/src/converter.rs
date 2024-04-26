@@ -105,23 +105,37 @@ impl UnitConverter {
             );
 
             let mut multiplier = 1.0;
+            let mut result_val = value;
             let mut any_expr: bool = false;
+
             for (_, conversion) in &shortest_path {
                 match conversion {
                     Conversion::Multiplier(val) => {
                         multiplier *= val;
+                        //result_val *= val;
+                        debug!("Multiplier: {}, Result: {}", multiplier, result_val);
                     }
                     Conversion::Expression(expr) => {
-                        let mut ctx = InMemoryExpressionContext::new();
-                        let a = expr.eval_with_ctx(&ctx);
                         any_expr = true;
+                        result_val *= multiplier;
+                        multiplier = 1.0;
+
+                        let mut ctx = InMemoryExpressionContext::new();
+                        let params = expr.params.first().unwrap();
+                        ctx.var(params, result_val);
+
+                        result_val = expr.eval_with_ctx(&ctx)?;
                     }
                 }
             }
 
-            //let multiplier = calculate_conversion_multiplier(&shortest_path);
-            let return_value = value * multiplier;
+            result_val = result_val * multiplier;
 
+            //let multiplier = calculate_conversion_multiplier(&shortest_path);
+            //let return_value = value * multiplier;
+
+            // Only cache if all edges are multiplier conversions, don't cache if there's any edge
+            // with an expression.
             if self.cache && !any_expr && shortest_path.len() > 1 {
                 info!(
                     "Caching conversion between {} and {} using multiplier {}",
@@ -137,7 +151,7 @@ impl UnitConverter {
                 }
             }
 
-            return Ok(return_value);
+            return Ok(result_val);
         }
 
         error!("Unable to get internal graph for unit type {}", unit_type);

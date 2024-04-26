@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use log::{debug, warn};
+use log::{trace, warn};
 
 use crate::{Function, Operator};
 
@@ -24,7 +24,7 @@ pub fn parse(input: &str) -> Result<Vec<Token>, ParseError> {
 }
 
 fn tokenizer(input: &str, result: &mut Vec<Token>) -> Result<(), ParseError> {
-    debug!("Parsing expression slice \"{}\"", input);
+    trace!("Parsing expression slice \"{}\"", input);
     for (pos, c) in input.char_indices() {
         match c {
             '(' => {

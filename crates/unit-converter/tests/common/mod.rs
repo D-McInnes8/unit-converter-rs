@@ -26,7 +26,9 @@ pub fn setup() -> UnitConverter {
 }
 
 pub fn setup_test_logger() {
-    let result = SimpleLogger::new().init();
+    let result = SimpleLogger::new()
+        .with_level(log::LevelFilter::Debug)
+        .init();
     if result.is_err() {
         eprintln!("Error initialising logger");
     }

@@ -1,3 +1,4 @@
+use log::trace;
 use log::{debug, info};
 use toml::{Table, Value};
 
@@ -26,9 +27,12 @@ impl BaseConversionsSourceToml {
         for (category, units) in &config {
             for (unit_from, conversions) in parse_table(units)? {
                 for (unit_to, value) in parse_table(conversions)? {
-                    debug!(
+                    trace!(
                         "Imported Base Conversion: [{}] {} -> {}: {}",
-                        category, unit_from, unit_to, value
+                        category,
+                        unit_from,
+                        unit_to,
+                        value
                     );
 
                     if let Some(c) = match_definition_val(value) {
