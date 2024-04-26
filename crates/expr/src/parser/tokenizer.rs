@@ -97,13 +97,13 @@ fn identifier(input: &str) -> Result<(Token, usize), ParseError> {
 
     let token = &input[0..end_pos];
     if let Some(token) = func(token).or_else(|| param(token)) {
-        return Ok((token, end_pos));
+        Ok((token, end_pos))
     } else {
-        return Err(ParseError::new(
+        Err(ParseError::new(
             "Identifier is not a valid function or unit of measurement",
             token,
             None as Option<ParseError>,
-        ));
+        ))
     }
 }
 
@@ -179,12 +179,16 @@ pub trait IsOperator {
 
 impl IsOperator for char {
     fn is_operator(&self) -> bool {
-        match self {
+        matches!(
+            self,
+            '+' | '-' | '−' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π'
+        )
+        /*match self {
             '+' | '-' | '−' | '*' | '×' | '/' | '÷' | '^' | '%' | '<' | '>' | ',' | 'π' => {
                 true
             }
             _ => false,
-        }
+        }*/
     }
 }
 

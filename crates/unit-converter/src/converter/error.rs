@@ -3,6 +3,8 @@ use std::fmt;
 
 use expr::error::ExpressionError;
 
+use crate::graph::GraphOperationError;
+
 #[derive(Debug, Default)]
 pub struct ConversionError {
     source: Option<Box<dyn Error>>,
@@ -50,8 +52,16 @@ impl From<toml::de::Error> for ConversionError {
     }
 }
 
+// TODO: Fix up this from trait so that it contains a proper error message
 impl From<ExpressionError> for ConversionError {
-    fn from(value: ExpressionError) -> Self {
+    fn from(_value: ExpressionError) -> Self {
+        ConversionError::new("")
+    }
+}
+
+// TODO: Fix up this from trait so that it contains a proper error message
+impl From<GraphOperationError> for ConversionError {
+    fn from(_value: GraphOperationError) -> Self {
         ConversionError::new("")
     }
 }

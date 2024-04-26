@@ -120,7 +120,7 @@ impl UnitConverter {
                         result_val *= multiplier;
                         multiplier = 1.0;
 
-                        let mut ctx = InMemoryExpressionContext::new();
+                        let mut ctx = InMemoryExpressionContext::default();
                         let params = expr.params.first().unwrap();
                         ctx.var(params, result_val);
 
@@ -129,7 +129,7 @@ impl UnitConverter {
                 }
             }
 
-            result_val = result_val * multiplier;
+            result_val *= multiplier;
 
             //let multiplier = calculate_conversion_multiplier(&shortest_path);
             //let return_value = value * multiplier;

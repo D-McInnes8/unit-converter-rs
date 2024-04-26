@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use log::{info, trace};
 
-use crate::expression::{ExpressionContext, InMemoryExpressionContext};
+use crate::expression::InMemoryExpressionContext;
 use crate::parser::tokenizer::parse;
 use crate::shunting_yard_algorithm::{eval_ast, shunting_yard};
 
@@ -88,6 +88,6 @@ pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     info!("Generating abstract syntax tree");
     trace!("\n{}", ast);
 
-    let ctx = InMemoryExpressionContext::new();
+    let ctx = InMemoryExpressionContext::default();
     Ok(eval_ast(&ast, &ctx))
 }

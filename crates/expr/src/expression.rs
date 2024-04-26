@@ -28,7 +28,7 @@ impl Expression {
         Ok(Expression {
             ast,
             expr,
-            ctx: InMemoryExpressionContext::new(),
+            ctx: InMemoryExpressionContext::default(),
             params,
         })
     }
@@ -47,16 +47,9 @@ pub trait ExpressionContext {
     fn var(&mut self, name: &str, val: f64);
 }
 
+#[derive(Default)]
 pub struct InMemoryExpressionContext {
     pub vars: HashMap<String, f64>,
-}
-
-impl InMemoryExpressionContext {
-    pub fn new() -> InMemoryExpressionContext {
-        InMemoryExpressionContext {
-            vars: HashMap::new(),
-        }
-    }
 }
 
 impl ExpressionContext for InMemoryExpressionContext {

@@ -43,7 +43,7 @@ pub fn invalid_expression(exp: &str) {
 pub fn expression_with_single_variable(input: &str, var: f64, expected: f64) {
     let expr = Expression::new(input).expect("");
 
-    let mut ctx = InMemoryExpressionContext::new();
+    let mut ctx = InMemoryExpressionContext::default();
     ctx.var("a", var);
 
     let actual = expr.eval_with_ctx(&ctx);

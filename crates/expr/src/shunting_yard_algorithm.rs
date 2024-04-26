@@ -41,7 +41,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode, ctx: &impl ExpressionContext) -> 
             );
             result
         }
-        AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
+        AbstractSyntaxTreeNode::UnaryExpression { operator: _, value } => {
             let val_r = eval_ast(value.as_ref(), ctx);
             -val_r
         }

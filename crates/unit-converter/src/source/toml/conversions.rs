@@ -1,5 +1,5 @@
+use log::info;
 use log::trace;
-use log::{debug, info};
 use toml::{Table, Value};
 
 use crate::source::toml::parse_helper::parse_table;

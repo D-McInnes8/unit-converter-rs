@@ -10,7 +10,7 @@ use crate::ConversionDefinition;
 use crate::ConversionValueDefinition;
 
 use super::error::ConversionError;
-use super::{UnitConversion, UnitConverter};
+use super::UnitConverter;
 
 pub struct UnitConverterBuilder {
     unit_types: HashSet<String>,
@@ -89,7 +89,7 @@ impl UnitConverterBuilder {
                             "Adding edge to '{}' graph for default conversion {} -> {} (x *= {})",
                             unit_type, &conversion.from, &conversion.to, &conversion.val
                         );
-                        graph.add_edge(n0, n1, Conversion::Multiplier(*x));
+                        graph.add_edge(n0, n1, Conversion::Multiplier(*x))?;
 
                         if self.auto_reverse {
                             let reversed = 1.0 / x;
@@ -97,7 +97,7 @@ impl UnitConverterBuilder {
                                 "Adding reversed edge to '{}' graph for {} -> {} (x *= {})",
                                 unit_type, &conversion.to, &conversion.from, reversed
                             );
-                            graph.add_edge(n1, n0, Conversion::Multiplier(reversed));
+                            graph.add_edge(n1, n0, Conversion::Multiplier(reversed))?;
                         }
                     }
                     ConversionValueDefinition::Expression(e) => {
@@ -106,7 +106,7 @@ impl UnitConverterBuilder {
                             unit_type, &conversion.from, &conversion.to, e
                         );
                         let expr = Expression::new(e)?;
-                        graph.add_edge(n0, n1, Conversion::Expression(expr));
+                        graph.add_edge(n0, n1, Conversion::Expression(expr))?;
                     }
                 }
 

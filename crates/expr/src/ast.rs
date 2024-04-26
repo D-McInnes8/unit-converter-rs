@@ -25,12 +25,6 @@ pub enum AbstractSyntaxTreeNode {
     },
 }
 
-#[derive(Debug, PartialEq)]
-pub enum FunctionValue {
-    Expression(Box<AbstractSyntaxTreeNode>),
-    List(Vec<Box<AbstractSyntaxTreeNode>>),
-}
-
 impl Display for AbstractSyntaxTreeNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fmt_ast_node(self, f, String::new(), String::new())
@@ -106,11 +100,4 @@ fn fmt_ast_node(
             write!(f, "")
         }
     }
-}
-
-#[derive(Debug, PartialEq, Clone, Copy)]
-pub enum OperationType {
-    Number(f64),
-    BinaryExpression { operator: Operator },
-    Function { name: Function, value: f64 },
 }
