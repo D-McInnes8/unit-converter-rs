@@ -10,6 +10,8 @@ use self::error::ConversionError;
 pub mod builder;
 pub mod error;
 
+// TODO: Give these structs more unique names, rather than them all being some variation of
+// Converter/Conversion.
 pub enum Conversion {
     Multiplier(f64),
     Expression(Expression),
@@ -54,6 +56,7 @@ impl UnitConverter {
             }
         }
 
+        // TODO: Return an actual error here rather than just default().
         Err(ConversionError::default())
     }
 
@@ -104,6 +107,7 @@ impl UnitConverter {
                 shortest_path.len()
             );
 
+            // TODO: Refactor this whole section of code.
             let mut multiplier = 1.0;
             let mut result_val = value;
             let mut any_expr: bool = false;
@@ -121,6 +125,7 @@ impl UnitConverter {
                         multiplier = 1.0;
 
                         let mut ctx = InMemoryExpressionContext::default();
+                        // TODO: Remove first() and unwrap() and handle errors properly.
                         let params = expr.params.first().unwrap();
                         ctx.var(params, result_val);
 

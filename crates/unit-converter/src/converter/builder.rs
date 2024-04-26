@@ -68,6 +68,7 @@ impl UnitConverterBuilder {
         self
     }
 
+    // TODO: Refactor this function to be more readable.
     pub fn build(self) -> Result<UnitConverter, ConversionError> {
         // Populate graph
         let mut graphs = vec![];

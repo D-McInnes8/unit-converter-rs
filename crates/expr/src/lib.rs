@@ -91,3 +91,5 @@ pub fn eval(input: &str) -> Result<f64, ExpressionError> {
     let ctx = InMemoryExpressionContext::default();
     Ok(eval_ast(&ast, &ctx))
 }
+
+// TODO: Write macro for evaluating expressions with parameters.

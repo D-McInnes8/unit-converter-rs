@@ -17,6 +17,8 @@ pub enum Token {
     Parameter(String),
 }
 
+// TODO: Consider using a different parsing method that will better handle errors. I.e. won't
+// return parsed tokens if the expression is not actually valid.
 pub fn parse(input: &str) -> Result<Vec<Token>, ParseError> {
     let mut r = vec![];
     tokenizer(input, &mut r)?;
@@ -190,8 +192,6 @@ impl IsOperator for char {
 mod tests {
     use std::f64::consts::PI;
     use std::vec;
-
-    use log::debug;
 
     use super::*;
 

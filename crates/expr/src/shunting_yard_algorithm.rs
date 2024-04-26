@@ -60,6 +60,7 @@ pub fn eval_ast(node: &AbstractSyntaxTreeNode, ctx: &impl ExpressionContext) -> 
             result
         }
         AbstractSyntaxTreeNode::FunctionParams { func, params } => {
+            // TODO: Rewrite this code to remove unwrap() functions.
             let result = match func {
                 Function::Max => max(params, ctx).unwrap(),
                 Function::Min => min(params, ctx).unwrap(),
@@ -83,6 +84,7 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
             output.push(AbstractSyntaxTreeNode::Variable(var));
         }
         Token::Func(func) => {
+            // TODO: Rewrite this code to remove unwrap() functions.
             let mut params = vec![];
             while let Some(param) = output.last() {
                 match param {
