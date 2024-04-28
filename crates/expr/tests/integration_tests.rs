@@ -29,6 +29,19 @@ pub fn expression_no_parameters(exp: &str, expected: f64) {
     assert_eq!(expected, actual.unwrap());
 }
 
+#[test_case("max(5, 8, 2)",        8.0  ; "max_function_simple")]
+#[test_case("max(5, 8, -2)",       8.0  ; "max_function_with_negative_parameter")]
+#[test_case("max(5, 8, 0 + 12)",   12.0 ; "max_function_with_addition_expression_parameter")]
+#[test_case("max(5, 7, 0 - 2)",    7.0  ; "max_function_with_subtraction_expression_parameter")]
+#[test_case("min(5, 8, -2)",       -2.0 ; "min_function_simple")]
+#[test_case("min(5, -2.3, 0 - 2)", -2.3 ; "min_function_with_negative_decimal_and_expression_parameters")]
+pub fn expression_functions(expr: &str, expected: f64) {
+    setup_test_logger();
+    let actual = eval(expr);
+    assert!(actual.is_ok(), "Returned error {:?}", actual.err());
+    assert_eq!(expected, actual.unwrap());
+}
+
 //#[test_case("10 45"      ; "no_operator")]
 //#[test_case("+ 10"       ; "missing_number")]
 #[test_case("2 * (1 + 5" ; "mismatched_parenthesis right")]
