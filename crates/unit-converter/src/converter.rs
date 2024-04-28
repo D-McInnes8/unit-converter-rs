@@ -112,8 +112,8 @@ impl UnitConverter {
             let mut result_val = value;
             let mut any_expr: bool = false;
 
-            for (_, conversion) in &shortest_path {
-                match conversion {
+            for edge in &shortest_path {
+                match edge.weight {
                     Conversion::Multiplier(val) => {
                         multiplier *= val;
                         //result_val *= val;

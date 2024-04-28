@@ -6,16 +6,11 @@ use log::{debug, warn};
 pub type NodeIndex = usize;
 pub type EdgeIndex = usize;
 
-#[derive(Debug)]
-pub struct NodeData<T> {
-    value: T,
-    edges: Vec<EdgeIndex>,
-}
-
-#[derive(Debug)]
-pub struct EdgeData<T> {
-    target: NodeIndex,
-    weight: T,
+#[derive(Debug, PartialEq)]
+pub struct GraphEdge<'a, N, E> {
+    pub source: &'a N,
+    pub target: &'a N,
+    pub weight: &'a E,
 }
 
 pub struct Graph<N, E>
@@ -25,6 +20,18 @@ where
     pub id: String,
     nodes: Vec<NodeData<N>>,
     edges: Vec<EdgeData<E>>,
+}
+
+#[derive(Debug)]
+struct NodeData<T> {
+    value: T,
+    edges: Vec<EdgeIndex>,
+}
+
+#[derive(Debug)]
+struct EdgeData<T> {
+    target: NodeIndex,
+    weight: T,
 }
 
 #[derive(Debug, PartialEq)]
@@ -135,7 +142,7 @@ where
         None
     }
 
-    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<(&N, &E)> {
+    pub fn shortest_path(&self, source: NodeIndex, target: NodeIndex) -> Vec<GraphEdge<N, E>> {
         let mut queue = VecDeque::new();
         let mut visited = vec![false; self.nodes.len()];
         let mut dist = vec![usize::MAX; self.nodes.len()];
@@ -161,10 +168,17 @@ where
             }
         }
 
+        // TODO: Improve performance of this section, should be able to initialise the Vec with
+        // the required size and populate the Vec so it's already reversed.
         let mut i = target;
         let mut result = vec![];
         while let Some((source_node, target_node, weight)) = path[i] {
-            result.push((&self.nodes[target_node].value, weight));
+            //result.push((&self.nodes[target_node].value, weight));
+            result.push(GraphEdge {
+                source: &self.nodes[source_node].value,
+                target: &self.nodes[target_node].value,
+                weight,
+            });
             i = source_node;
         }
         result.reverse();
@@ -266,8 +280,20 @@ mod tests {
         _ = graph.add_edge(n2, n3, 30);
         _ = graph.add_edge(n3, n4, 40);
 
+        let expected: Vec<GraphEdge<i32, i32>> = vec![
+            GraphEdge {
+                source: &1,
+                target: &2,
+                weight: &25,
+            },
+            GraphEdge {
+                source: &2,
+                target: &4,
+                weight: &30,
+            },
+        ];
         let actual = graph.shortest_path(n0, n3);
-        assert_eq!(actual, vec![(&2, &25), (&4, &30)]);
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -282,8 +308,13 @@ mod tests {
         _ = graph.add_edge(n0, n1, 5);
         _ = graph.add_edge(n1, n2, 10);
 
+        let expected: Vec<GraphEdge<i32, i32>> = vec![GraphEdge {
+            source: &1,
+            target: &3,
+            weight: &25,
+        }];
         let actual = graph.shortest_path(n0, n2);
-        assert_eq!(actual, vec![(&3, &25)]);
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -294,7 +325,12 @@ mod tests {
         let n1 = graph.add_node(2);
         _ = graph.add_edge(n0, n1, 30);
 
+        let expected: Vec<GraphEdge<i32, i32>> = vec![GraphEdge {
+            source: &1,
+            target: &2,
+            weight: &30,
+        }];
         let actual = graph.shortest_path(n0, n1);
-        assert_eq!(actual, vec![(&2, &30)])
+        assert_eq!(expected, actual);
     }
 }
