@@ -110,23 +110,22 @@ impl UnitConverter {
             // TODO: Refactor this whole section of code.
             let mut multiplier = 1.0;
             let mut result_val = value;
-            let mut any_expr: bool = false;
+            let mut should_cache_multiplier: bool = true;
 
             for edge in &shortest_path {
                 match edge.weight {
                     Conversion::Multiplier(val) => {
                         multiplier *= val;
-                        //result_val *= val;
-                        debug!("Multiplier: {}, Result: {}", multiplier, result_val);
                     }
                     Conversion::Expression(expr) => {
-                        any_expr = true;
+                        should_cache_multiplier = false;
                         result_val *= multiplier;
                         multiplier = 1.0;
 
                         let mut ctx = InMemoryExpressionContext::default();
-                        // TODO: Remove first() and unwrap() and handle errors properly.
-                        let params = expr.params.first().unwrap();
+                        let params = self
+                            .get_unit_abbrev(edge.source, unit_type)
+                            .ok_or(ConversionError::new("Unable to find unit."))?;
                         ctx.var(params, result_val);
 
                         result_val = expr.eval_with_ctx(&ctx)?;
@@ -136,12 +135,9 @@ impl UnitConverter {
 
             result_val *= multiplier;
 
-            //let multiplier = calculate_conversion_multiplier(&shortest_path);
-            //let return_value = value * multiplier;
-
-            // Only cache if all edges are multiplier conversions, don't cache if there's any edge
-            // with an expression.
-            if self.cache && !any_expr && shortest_path.len() > 1 {
+            // Should cache the multiplier only if all conversions were multiplier conversions and
+            // if there length of the path is greater than 1.
+            if self.cache && should_cache_multiplier && shortest_path.len() > 1 {
                 info!(
                     "Caching conversion between {} and {} using multiplier {}",
                     from, to, multiplier
@@ -167,6 +163,15 @@ impl UnitConverter {
 
     pub fn units(&self) -> &Vec<UnitAbbreviation> {
         &self.abbreviations
+    }
+
+    fn get_unit_abbrev(&self, unit: &str, unit_type: &str) -> Option<&str> {
+        for def in &self.abbreviations {
+            if def.unit == unit && def.unit_type == unit_type {
+                return Some(&def.abbrev);
+            }
+        }
+        None
     }
 
     fn get_graph_node_index(
