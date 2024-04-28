@@ -333,4 +333,49 @@ mod tests {
         let actual = graph.shortest_path(n0, n1);
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn shortest_path_no_path_no_edges() {
+        let mut graph = Graph::default();
+
+        let n0 = graph.add_node(1);
+        let n1 = graph.add_node(2);
+
+        let expected: Vec<GraphEdge<i32, i32>> = vec![];
+        let actual = graph.shortest_path(n0, n1);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shortest_path_no_path_with_edges() {
+        let mut graph = Graph::default();
+
+        let n0 = graph.add_node(1);
+        let n1 = graph.add_node(2);
+        let n2 = graph.add_node(3);
+        let n3 = graph.add_node(4);
+
+        _ = graph.add_edge(n0, n1, 25);
+        _ = graph.add_edge(n3, n2, 20);
+
+        let expected: Vec<GraphEdge<i32, i32>> = vec![];
+        let actual = graph.shortest_path(n3, n0);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shortest_path_no_path_with_edges_in_opposite_direction() {
+        let mut graph = Graph::default();
+
+        let n0 = graph.add_node(1);
+        let n1 = graph.add_node(2);
+        let n2 = graph.add_node(3);
+
+        _ = graph.add_edge(n0, n2, 25);
+        _ = graph.add_edge(n1, n2, 30);
+
+        let expected: Vec<GraphEdge<i32, i32>> = vec![];
+        let actual = graph.shortest_path(n0, n1);
+        assert_eq!(expected, actual);
+    }
 }
