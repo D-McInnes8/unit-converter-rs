@@ -165,7 +165,7 @@ fn operator(input: &str, prev: Option<&Token>) -> Result<(Token, usize), ParseEr
     // Convert unary operators into a special time so they're easier to evalute.
     if operator == Token::Operator(Operator::Subtraction) {
         match prev {
-            None | Some(Token::Left) | Some(Token::Operator(_)) => {
+            None | Some(Token::Left) | Some(Token::Operator(_)) | Some(Token::Comma) => {
                 return Ok((Token::Operator(Operator::Negative), end_pos))
             }
             _ => (),

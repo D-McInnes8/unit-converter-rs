@@ -85,11 +85,27 @@ fn pop_to_output_queue(token: Token, output: &mut Vec<AbstractSyntaxTreeNode>) {
         }
         Token::Func(func) => {
             // TODO: Rewrite this code to remove unwrap() functions.
+            // TODO: Fix error where when the function is the right side of a binary expression,
+            // the left hand side is evaluated as a part of the fucntion parameters.
             let mut params = vec![];
             while let Some(param) = output.last() {
                 match param {
-                    AbstractSyntaxTreeNode::Number(_) => params.push(output.pop().unwrap()),
+                    AbstractSyntaxTreeNode::Number(num) => {
+                        debug!(
+                            "Popping number {:?} from output queue to function parameters.",
+                            num
+                        );
+                        params.push(output.pop().unwrap());
+                    }
                     AbstractSyntaxTreeNode::Variable(_) => params.push(output.pop().unwrap()),
+                    AbstractSyntaxTreeNode::UnaryExpression { operator, value } => {
+                        params.push(output.pop().unwrap())
+                    }
+                    AbstractSyntaxTreeNode::BinaryExpression {
+                        operator,
+                        left,
+                        right,
+                    } => params.push(output.pop().unwrap()),
                     _ => break,
                 };
             }
