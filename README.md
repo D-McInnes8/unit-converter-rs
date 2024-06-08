@@ -12,7 +12,8 @@ An expression can be evaluated using two different methods, the first is the `ev
 
 ```
 let result = eval(5 + 10);
-assert_eq!(result, 15.0);```
+assert_eq!(result, 15.0);
+```
 
 The second method is using the `Expression` struct, which compiles the expression into an abstract syntax tree which can be evaluated multiple times. An expression can be evaluated without parameters by calling the `eval` function:
 
